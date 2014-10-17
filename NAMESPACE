@@ -1,0 +1,13 @@
+import(coda, HI, survival, KMsurv)
+S3method(summary, MRH)
+S3method(plot, MRH)
+export("AnalyzeMultiple",
+	"estimateMRH",
+	"MRH.default",
+	"MRH",
+	"is.MRH",
+	"as.MRH",
+	"nph",
+	"DIC",
+	"CalcFunction",
+	"FindBinWidth")

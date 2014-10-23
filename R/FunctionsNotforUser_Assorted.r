@@ -15,7 +15,6 @@
 ######################################################################################
 library(survival)
 library(coda)
-library(HI)
 ###########################################################################################
 # The calc_dfast function calculates d faster given an M, Rmp values,  H00, and the 
 #	0/1 matrix is passed to it.

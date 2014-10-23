@@ -188,7 +188,7 @@ writenum, sysseconds, systemtime, checknum){
 																						 deltavals = delta, Mvalue = Mval, 
 																						 inBinMat = inBin, mat01 = mat01, 
 																						 formula = Rmpctr), Rmp[Rmpctr], 
-								as.integer(1), new.env(), PACKAGE = "MRH")
+								as.integer(1), new.env())
 		}
 		
 		##### Draw beta ########
@@ -206,7 +206,7 @@ writenum, sysseconds, systemtime, checknum){
 																					  deltavals = delta, Xmatrix = Xstdz, 
 																					  Hvals = H, whichBeta = betaCtr, mu.beta = 0, 
 																					  sigma.beta = 10), betas.stdz[betaCtr], 
-													   as.integer(1), new.env(), PACKAGE = "MRH")
+													   as.integer(1), new.env())
 				}
 				beta = betas.stdz/Xsds
 			} else {
@@ -216,13 +216,13 @@ writenum, sysseconds, systemtime, checknum){
 										  f = function(x) logbetaPost_PH(x, betaFull = beta, deltavals = delta, 
 																		 Xmatrix = X, Hvals = H, whichBeta = betaCtr, mu.beta = 0, 
 																		 sigma.beta = 10), beta[betaCtr], 
-										  as.integer(1), new.env(), PACKAGE = "MRH")
+										  as.integer(1), new.env())
 				}
 			}
 		}
 		##### Draw lambda ########
 		lambda = .Call("arms", c(.0001, 10), f = function(x) logLambdaPost(x, mu.lval = 100, H00val = H00, aval = a),
-					   lambda, as.integer(1), new.env(), PACKAGE = "MRH")
+					   lambda, as.integer(1), new.env())
 		##### Draw a #########
 		a = sample.a(1:50, lambdaval = lambda, mu.aval = 4, H00val = H00, kval = k, 
 							 mvec = mvec, Mval = Mval, Rmpvec = Rmp, gamma.mpvec = gamma.mp)

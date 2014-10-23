@@ -2,7 +2,6 @@
 # Contains the functions needed to: convert to an MRH object, summary, and plot for PH model.
 ###########################################################################################
 library(survival)
-library(HI)
 library(coda)
 
 MRH = function(x) UseMethod("MRH")

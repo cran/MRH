@@ -234,7 +234,7 @@ writenum, sysseconds, systemtime, checknum){
 						one_RmpIndic = one_RmpInd[indices[[hazCtr]],rmpctr],
 						deltavals = delta[indices[[hazCtr]]], Mvalue = Mval, 
 						inBinMat = inBin[indices[[hazCtr]],], mat01 = mat01, 
-						formula = rmpctr), Rmp[rmpctr,hazCtr], as.integer(1), new.env(), PACKAGE = "MRH")
+						formula = rmpctr), Rmp[rmpctr,hazCtr], as.integer(1), new.env())
 			}
 		}
 		
@@ -262,7 +262,7 @@ writenum, sysseconds, systemtime, checknum){
 					betas.stdz[betaCtr] = .Call("arms", c(betaLB[betaCtr], betaUB[betaCtr]), f = function(x) 
 												logbetaPost_NPHBA(x, betaFull = betas.stdz, deltavals = delta, Xmatrix = Xstdz, Hvals = H, 
 																  whichBeta = betaCtr, mu.beta = 0, sigma.beta = 10), betas.stdz[betaCtr], 
-												as.integer(1), new.env(), PACKAGE = "MRH")
+												as.integer(1), new.env())
 				}
 				betas = betas.stdz/Xsds
 			} else {
@@ -270,14 +270,14 @@ writenum, sysseconds, systemtime, checknum){
 					betas[betaCtr] = .Call("arms", c(betaLB[betaCtr], betaUB[betaCtr]), f = function(x) 
 										   logbetaPost_NPHBA(x, betaFull = betas, deltavals = delta, Xmatrix = Xfixed, Hvals = H, 
 														 whichBeta = betaCtr, mu.beta = 0, sigma.beta = 10), betas[betaCtr], 
-										   as.integer(1), new.env(), PACKAGE = "MRH")
+										   as.integer(1), new.env())
 				}
 			}
 		}
 		##### Draw lambda ########
 		for(hazCtr in 1:numHazards){
 			lambda[hazCtr] = .Call("arms", c(.0001, 10), f = function(x) logLambdaPost(x, 
-					mu.lval = 100, H00val = H00[hazCtr], aval = a[hazCtr]), lambda[hazCtr], as.integer(1), new.env(), PACKAGE = "MRH")
+					mu.lval = 100, H00val = H00[hazCtr], aval = a[hazCtr]), lambda[hazCtr], as.integer(1), new.env())
 		}
 		
 		##### Draw a #########

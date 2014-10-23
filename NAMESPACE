@@ -1,4 +1,5 @@
-import(coda, HI, survival, KMsurv)
+useDynLib(MRH)
+import(coda, survival, KMsurv)
 S3method(summary, MRH)
 S3method(plot, MRH)
 export("AnalyzeMultiple",

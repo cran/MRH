@@ -88,7 +88,10 @@ AnalyzeMultiple = function(datalist, fileNames, alpha.level = 0.05, maxStudyTime
 		length.uniques = sapply(1:ncol(pdata), function(x) length(unique(pdata[,x])))
 		pruned.Rmps = which(length.uniques == 1 & pdata[1,] == 0.5 & substr(colnames(pdata), 1, 3) == 'Rmp')
 		if(length(pruned.Rmps) > 0){
-			gr.keep.index = c((2^M+1):ncol(pdata))[-(pruned.Rmps-2^M)]
+            if(length(which(substr(colnames(pdata), 1, 3) == 'gam')) > 0){
+                pruned.Rmps = c(pruned.Rmps, pruned.Rmps+2^M-1)
+            }
+			gr.keep.index = c((2^M+1):ncol(pdata))[-c(pruned.Rmps-2^M)]
 		} else {	gr.keep.index = c((2^M+1):ncol(pdata))	}
 	} else {
 		firstgroup = substr(colnames(pdata)[2], 4, 4)
@@ -102,10 +105,13 @@ AnalyzeMultiple = function(datalist, fileNames, alpha.level = 0.05, maxStudyTime
 		length.uniques = sapply(1:ncol(pdata), function(x) length(unique(pdata[,x])))
 		pruned.Rmps = which(length.uniques == 1 & pdata[1,] == 0.5 & substr(colnames(pdata), 1, 3) == 'Rmp')
 		if(length(pruned.Rmps) > 0){
+            if(length(which(substr(colnames(pdata), 1, 3) == 'gam')) > 0){
+                pruned.Rmps = c(pruned.Rmps, pruned.Rmps+(2^M-1)*numhazards)
+            }
 			gr.keep.index = c((2^M*numhazards+1):ncol(pdata))[-c(pruned.Rmps-2^M*numhazards)]
 			keep.names = colnames(pdata)[gr.keep.index]
 			beta.nph.start = which(substr(keep.names, nchar(keep.names)-3, nchar(keep.names))=='bin1')[1]
-			gr.keep.index = gr.keep.index[-beta.nph.start:(beta.nph.start-1+2^M*(numhazards-1))]
+			gr.keep.index = gr.keep.index[-c(beta.nph.start:(beta.nph.start-1+2^M*(numhazards-1)))]
 		} else {
 			gr.keep.index = c((2^M*numhazards+1):ncol(pdata))
 			keep.names = colnames(pdata)[gr.keep.index]
@@ -114,8 +120,7 @@ AnalyzeMultiple = function(datalist, fileNames, alpha.level = 0.05, maxStudyTime
 		}
 	}
 	
-	d = H = Rmp = beta = betanph = mcmctemplist = burnIn = numIters = NULL
-
+	hazrate = survrate = cumulhaz = d = H = Rmp = beta = betanph = k = gamma = mcmctemplist = burnIn = numIters = NULL
 	gr.datalist = NULL
 	for(filectr in 1:numsets){
 		
@@ -132,27 +137,42 @@ AnalyzeMultiple = function(datalist, fileNames, alpha.level = 0.05, maxStudyTime
 		thinval = pdata[2,1]-pdata[1,1]
 		
 		#### Calculate the medians and alpha-level quantiles ####	
-		pdata.summary = summary(pdata, alpha.level = alpha.level)
-		d = cbind(d, as.matrix(pdata.summary$d))
-		H = cbind(H, as.matrix(pdata.summary$H))
-		Rmp = cbind(Rmp, as.matrix(pdata.summary$Rmp))
-		if('beta' %in% names(pdata.summary)){	
-			beta = cbind(beta, as.matrix(pdata.summary$beta))	
+		pdata.summary = summary(pdata, alpha.level = alpha.level, maxStudyTime = maxStudyTime)
+		hazrate = cbind(hazrate, as.matrix(pdata.summary$hazardRate))
+		survrate = cbind(survrate, as.matrix(pdata.summary$SurvivalCurve))
+		cumulhaz = cbind(cumulhaz, as.matrix(pdata.summary$CumulativeHazard))
+		if('beta' %in% names(pdata.summary)){	beta = cbind(beta, as.matrix(pdata.summary$beta))	
 		} else if('betaPH' %in% names(pdata.summary)){
 			beta = cbind(beta, as.matrix(pdata.summary$betaPH))
 			betanph = cbind(betanph, as.matrix(pdata.summary$betaNPH))
 		}
+		d = cbind(d, as.matrix(pdata.summary$d))
+		H = cbind(H, as.matrix(pdata.summary$H))
+		Rmp = cbind(Rmp, as.matrix(pdata.summary$Rmp))
+		if('k' %in% names(pdata.summary)){	k = cbind(k, as.matrix(pdata.summary$k))	}
+		if('gamma' %in% names(pdata.summary)){	gamma = cbind(gamma, as.matrix(pdata.summary$gamma))	}
+			
 	}
 	
-	d.full = cbind(sapply(1:(2^M*numhazards), function(x) median(d[x,(1:numsets-1)*3+1])),
-				   sapply(1:(2^M*numhazards), function(x) median(d[x,(1:numsets-1)*3+2])),
-				   sapply(1:(2^M*numhazards), function(x) median(d[x,(1:numsets-1)*3+3])))
-	H.full = cbind(sapply(1:numhazards, function(x) median(H[x,(1:numsets-1)*3+1])),
-				   sapply(1:numhazards, function(x) median(H[x,(1:numsets-1)*3+2])),
-				   sapply(1:numhazards, function(x) median(H[x,(1:numsets-1)*3+3])))
-	Rmp.full = cbind(sapply(1:((2^M-1)*numhazards), function(x) median(Rmp[x,(1:numsets-1)*3+1])),
-					 sapply(1:((2^M-1)*numhazards), function(x) median(Rmp[x,(1:numsets-1)*3+2])),
-					 sapply(1:((2^M-1)*numhazards), function(x) median(Rmp[x,(1:numsets-1)*3+3])))
+	hazrate.full = cbind(sapply(1:nrow(hazrate), function(x) median(hazrate[x,(1:numsets-1)*3+1])),
+						 sapply(1:nrow(hazrate), function(x) median(hazrate[x,(1:numsets-1)*3+2])),
+						 sapply(1:nrow(hazrate), function(x) median(hazrate[x,(1:numsets-1)*3+3])))
+	survrate.full = cbind(sapply(1:nrow(survrate), function(x) median(survrate[x,(1:numsets-1)*3+1])),
+						  sapply(1:nrow(survrate), function(x) median(survrate[x,(1:numsets-1)*3+2])),
+						  sapply(1:nrow(survrate), function(x) median(survrate[x,(1:numsets-1)*3+3])))
+	cumulhaz.full = cbind(sapply(1:nrow(cumulhaz), function(x) median(cumulhaz[x,(1:numsets-1)*3+1])),
+						  sapply(1:nrow(cumulhaz), function(x) median(cumulhaz[x,(1:numsets-1)*3+2])),
+						  sapply(1:nrow(cumulhaz), function(x) median(cumulhaz[x,(1:numsets-1)*3+3])))
+	
+	d.full = cbind(sapply(1:nrow(d), function(x) median(d[x,(1:numsets-1)*3+1])),
+				   sapply(1:nrow(d), function(x) median(d[x,(1:numsets-1)*3+2])),
+				   sapply(1:nrow(d), function(x) median(d[x,(1:numsets-1)*3+3])))
+	H.full = cbind(sapply(1:nrow(H), function(x) median(H[x,(1:numsets-1)*3+1])),
+				   sapply(1:nrow(H), function(x) median(H[x,(1:numsets-1)*3+2])),
+				   sapply(1:nrow(H), function(x) median(H[x,(1:numsets-1)*3+3])))
+	Rmp.full = cbind(sapply(1:nrow(Rmp), function(x) median(Rmp[x,(1:numsets-1)*3+1])),
+					 sapply(1:nrow(Rmp), function(x) median(Rmp[x,(1:numsets-1)*3+2])),
+					 sapply(1:nrow(Rmp), function(x) median(Rmp[x,(1:numsets-1)*3+3])))
 	if('beta' %in% names(pdata.summary)){
 		beta.full = cbind(sapply(1:nrow(beta), function(x) median(beta[x,(1:numsets-1)*3+1])),
 						  sapply(1:nrow(beta), function(x) median(beta[x,(1:numsets-1)*3+2])),
@@ -165,30 +185,38 @@ AnalyzeMultiple = function(datalist, fileNames, alpha.level = 0.05, maxStudyTime
 								sapply(1:nrow(betanph), function(x) median(betanph[x,(1:numsets-1)*3+2])),
 								sapply(1:nrow(betanph), function(x) median(betanph[x,(1:numsets-1)*3+3]))))
 	}
-	
-	title.lb = alpha.level/2*1000
-	if(alpha.level/2*1000 < 100){	title.lb = paste('0', title.lb, sep = '')	}
-	if(alpha.level/2*1000 < 10){	title.lb = paste('0', title.lb, sep = '')	}
-	title.ub = (1-alpha.level/2)*1000
+	if('k' %in% names(pdata.summary)){
+		k.full = cbind(sapply(1:nrow(k), function(x) median(k[x, (1:numsets-1)*3+1])),
+					   sapply(1:nrow(k), function(x) median(k[x, (1:numsets-1)*3+2])),
+					   sapply(1:nrow(k), function(x) median(k[x, (1:numsets-1)*3+3])))
+	}
+	if('gamma' %in% names(pdata.summary)){
+		gamma.full = cbind(sapply(1:nrow(gamma), function(x) median(gamma[x, (1:numsets-1)*3+1])),
+						   sapply(1:nrow(gamma), function(x) median(gamma[x, (1:numsets-1)*3+2])),
+						   sapply(1:nrow(gamma), function(x) median(gamma[x, (1:numsets-1)*3+3])))
+	}
 	
 	############ Create the summary table #################
-	colnames(d.full) = c('dEst', paste('dq', title.lb, sep = '.'), paste('dq', title.ub, sep = '.'))
+	colnames(hazrate.full) = colnames(pdata.summary$hazardRate)
+	rownames(hazrate.full) = rownames(pdata.summary$hazardRate)
+	colnames(survrate.full) = colnames(pdata.summary$SurvivalCurve)
+	rownames(survrate.full) = rownames(pdata.summary$SurvivalCurve)
+	colnames(cumulhaz.full) = colnames(pdata.summary$CumulativeHazard)
+	rownames(cumulhaz.full) = rownames(pdata.summary$CumulativeHazard)
+	colnames(d.full) = colnames(pdata.summary$d)
 	rownames(d.full) = rownames(pdata.summary$d)
-	colnames(H.full) = c('HEst', paste('Hq', title.lb, sep = '.'), paste('Hq', title.ub, sep = '.'))
+	colnames(H.full) = colnames(pdata.summary$H)
 	rownames(H.full) = rownames(pdata.summary$H)
-	colnames(Rmp.full) = c('RmpEst', paste('Rmpq', title.lb, sep = '.'), paste('Rmpq', title.ub, sep = '.'))
+	colnames(Rmp.full) = colnames(pdata.summary$Rmp)
 	rownames(Rmp.full) = rownames(pdata.summary$Rmp)
 	if('beta' %in% names(pdata.summary)){
-		colnames(beta.full) = c('betaEst', paste('betaq', title.lb, sep = '.'), paste('betaq', title.ub, sep = '.'))
+		colnames(beta.full) = colnames(pdata.summary$beta)
 		rownames(beta.full) = rownames(pdata.summary$beta)
 	} else if('betaPH' %in% names(pdata.summary)){
-		colnames(beta.full) = c('betaEst', paste('betaq', title.lb, sep = '.'), paste('betaq', title.ub, sep = '.'))
+		colnames(beta.full) = colnames(pdata.summary$betaPH)
 		rownames(beta.full) = c(rownames(pdata.summary$betaPH), rownames(pdata.summary$betaNPH))
 	}
-	haz.full = d.full/(censortime/2^M)
-	colnames(haz.full) = c('hazRateEst', paste('hrq', title.lb, sep = '.'), paste('hrq', title.ub, sep = '.'))
-	rownames(haz.full) = paste('hazRate', unlist(strsplit(rownames(pdata.summary$d), 'd'))[1:(2^M*numhazards)*2],
-							   sep = '')
+
 	if(GR == TRUE){
 		if(length(unique(burnIn)) > 1){
 			warning("Burn-in number is not equal across all data sets.  Gelman-Rubin diagnostic test
@@ -202,13 +230,14 @@ AnalyzeMultiple = function(datalist, fileNames, alpha.level = 0.05, maxStudyTime
 		} else {
 			gr = gelman.scale(gr.datalist, number.inchain = (numIters[1]-burnIn[1])/thinval, numsets = numsets)
 		}
-		output = list(d = d.full, H = H.full, Rmp = Rmp.full, beta = beta.full, 
-					  hazardrate = haz.full, gelman.rubin = gr)
-	} else {
-		output = list(d = d.full, H = H.full, Rmp = Rmp.full, beta = beta.full, 
-					  hazardrate = haz.full)
-	}
-	class(output) = "MRH"
+	} 
+	output = list(hazardRate = hazrate.full)
+	if('beta' %in% names(pdata.summary)){	output = c(output, list(beta = beta.full))	}
+	output = c(output, list(SurvivalCurve = survrate.full, CumulativeHazard = cumulhaz.full, d = d.full, 
+							H = H.full, Rmp = Rmp.full))
+	if('gamma' %in% names(pdata.summary)){	output = c(output, list(gamma = gamma.full))	}
+	if('k' %in% names(pdata.summary)){	output = c(output, list(k = k.full))	}
+	if(GR == TRUE){	output = c(output, list(gelman.rubin = gr))	}
 	
 	return(output)
 }
@@ -245,18 +274,22 @@ DIC = function(mrhobject, n){
 	numparams = numparams - length(pruned.Rmps)
 
 	loglik = mrhobject[,ncol(mrhobject)]
-	loglik.summ = summary(-2*loglik)
+	loglik.summ = as.data.frame(matrix(summary(-2*loglik), ncol = 1))
+    row.names(loglik.summ) = names(summary(-2*loglik))
+    names(loglik.summ) = 'value'
+    
 	DIC = .5*var(-2*loglik) + mean(-2*loglik)
 	AIC = max(2*numparams - 2*loglik)
 	BIC = NA
 	if(!missing(n)){
 		BIC = max(-2*loglik + numparams*log(n))
 	} else {
-		warning("Need number of subjects in data set (n) to calculate BIC")
+		warning("Need number of subjects in data set (n) to calculate BIC. This number can be found in the MCMCInfo.txt file in the output folder.")
 	}
-	ICtable = as.data.frame(matrix(c(DIC, AIC, BIC), nrow = 1))
-	names(ICtable) = c('DIC', 'AIC', 'BIC')
-	return(list(loglik.summ = loglik.summ, ICtable = ICtable))
+	ICtable = as.data.frame(matrix(c(DIC, AIC, BIC), ncol = 1))
+	row.names(ICtable) = c('DIC', 'AIC', 'BIC')
+    names(ICtable) = 'value'
+	return(list(neg2loglik.summ = loglik.summ, ICtable = ICtable))
 	
 }		
 

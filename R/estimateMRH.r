@@ -4,8 +4,9 @@
 
 estimateMRH = function(formula, data, M, numberBins, maxStudyTime, outfolder = 'MRHresults', 
 prune = FALSE, prune.alpha = 0.05, prune.levels = NULL, burnIn = 50000, maxIter = 500000, 
-thin = 10, RmpInit = NULL, a.init = 10, lambda.init, beta.init = NULL, k.fixed,
-gamma.fixed, GR = FALSE, convGraphs = TRUE, fix.burnIn = FALSE, fix.thin = FALSE, fix.max = FALSE){
+thin = 10, Rmp.init = NULL, a.init = 10, lambda.init, beta.init = NULL, k.fixed,
+gamma.fixed, GR = FALSE, convGraphs = TRUE, fix.burnIn = FALSE, fix.thin = FALSE, fix.max = FALSE,
+continue.chain = FALSE){
 
 	options(digits = 16)
 	systemtime = Sys.time()
@@ -94,6 +95,7 @@ gamma.fixed, GR = FALSE, convGraphs = TRUE, fix.burnIn = FALSE, fix.thin = FALSE
 		}
 		numPHcovs = ncol(Xmatrix)
 		numNPHcovs = 0
+		numHazards = 1
 	}
 	## Perfect the names ##
 	if(!is.null(Xmatrix)){	colnames(Xmatrix) = gsub("`", "", colnames(Xmatrix))	}
@@ -111,8 +113,8 @@ gamma.fixed, GR = FALSE, convGraphs = TRUE, fix.burnIn = FALSE, fix.thin = FALSE
 	}
 	
 	# Check bounds on user-entered initialized parameters
-	if(length(which(0 > RmpInit | RmpInit > 1)) > 0){ stop("All Rmp values must be between 0 and 1.") }
-	if(!is.null(RmpInit) & length(RmpInit) != 2^M-1){ stop("Length of initialized Rmp vector should equal 2^M-1.") }
+	if(length(which(0 > Rmp.init | Rmp.init > 1)) > 0){ stop("All Rmp values must be between 0 and 1.") }
+	if(!is.null(Rmp.init) & length(Rmp.init) != 2^M-1){ stop("Length of initialized Rmp vector should equal 2^M-1.") }
 	if(a.init < 0){ stop("Initial value for 'a' must be greater than 0") }
 	if(!missing(lambda.init)){	if(lambda.init < 0){ stop("Initial value for lambda must be greater than 0") }}
 	# Check that the pruning vector or matrix has the correct length/dimensions if it is entered.
@@ -171,6 +173,56 @@ gamma.fixed, GR = FALSE, convGraphs = TRUE, fix.burnIn = FALSE, fix.thin = FALSE
 	##########################################################################
 	if(GR == TRUE){		fix.burnIn = fix.max = fix.thin = TRUE	}
 
+    ################################################################################
+    # If user wants to continue the previous chain, then set the initial values
+    # from the output folder, and use the previous burn-in and thinning values as
+    # the initial starting parameter values.
+    #################################################################################
+    loopctr.start = 1
+    if(continue.chain == TRUE){
+        mcmcinfo = read.table(paste(outfolder, '/MCMCchains.txt', sep = ''), header = TRUE)
+        # Need to remove the last column that contains the log-likelihood calculations
+        write.table(mcmcinfo[,-ncol(mcmcinfo)], paste(outfolder, '/MCMCchains.txt', sep = ''),
+                    row.names = FALSE)
+        burnIn = 0
+        thin = mcmcinfo[2,1]-mcmcinfo[1,1]
+        maxIter = mcmcinfo[nrow(mcmcinfo),1]+maxIter
+        loopctr.start = mcmcinfo[nrow(mcmcinfo),1]+1
+        
+        lastline = matrix(as.numeric(mcmcinfo[nrow(mcmcinfo),]), nrow = 1)
+        colnames(lastline) = names(mcmcinfo)
+        
+        betavals = which(substr(colnames(lastline), 1, 4) == 'beta')
+        if(numHazards > 1){
+            badbetavals = which(grepl('.bin1', colnames(lastline)) == 'TRUE')[1]
+            if(length(badbetavals) > 0 & length(betavals) > 0){
+                if(betavals[1] == badbetavals){ betavals = NULL
+                } else {    betavals = betavals[1:which(betavals == (badbetavals-1))] }
+            }
+        }
+        if(length(betavals) > 0){   beta.init = lastline[,betavals]  }
+        
+        rmpvals = which(substr(colnames(lastline), 1, 3) == 'Rmp')
+        Rmp.init = matrix(lastline[,rmpvals], ncol = numHazards)
+        avals = which(substr(colnames(lastline), 1, 1) == 'a')
+        a.init = lastline[,avals]
+        
+        lambdavals = which(substr(colnames(lastline), 1, 6) == 'lambda')
+        lambda.init = lastline[,lambdavals]
+        
+        gammavals = which(substr(colnames(lastline), 1, 5) == 'gamma')
+        if(length(gammavals) > 0){
+            gamma.init = matrix(lastline[,gammavals], ncol = numHazards)
+            gamma.fixed = FALSE
+        }
+        
+        kvals = which(substr(colnames(lastline), 1, 1) == 'k')
+        if(length(kvals) > 0){
+            k.init = lastline[,kvals]
+            k.fixed = FALSE
+        }
+    }
+
 	###########################################################################################
 	#		Create the pruning variable based on user entered information
 	###########################################################################################
@@ -204,36 +256,127 @@ gamma.fixed, GR = FALSE, convGraphs = TRUE, fix.burnIn = FALSE, fix.thin = FALSE
 	} else if(!is.logical(prune)) {	prune.indicator = prune	}
 
 	###########################################################################################
+	#		Set the k and gamma values, checking for user errors.
+	###########################################################################################
+	if(missing(lambda.init)){	lambda.init = NULL	}
+	
+	# If the user does not enter anything for the k.fixedor if it is set to TRUE, set k.fixed = 0.5
+	if(missing(k.fixed)){	k.fixed = rep(0.5, numHazards)	
+	} else if (k.fixed == TRUE){	k.fixed = rep(0.5, numHazards)
+	# If the user only enters one k.fixed value for the NPH case, set that value to all hazards
+	} else if (!is.logical(k.fixed) & length(k.fixed) == 1 & numHazards > 1){ k.fixed = rep(k.fixed, numHazards)
+	# If more than one k is entered, but it does not match the number of hazards, send error message
+	} else if (!is.logical(k.fixed) & length(k.fixed) > 1 & length(k.fixed) != numHazards){ 
+			stop("Enter one value of k for all hazards or a vector of k values with one for each hazard")
+	# If the user enters a value of k less than zero, send error message.
+	} else if(!is.logical(k.fixed) & length(which(k.fixed <= 0)) > 0){	stop("Values of k must be greater than 0.")	}
+	
+	# If the user does not enter a value for gamma or if it is set to TRUE, set gamma.fixed at 0.5
+	if(missing(gamma.fixed)){	gamma.fixed = matrix(0.5, nrow = 2^M-1, ncol = numHazards)
+	} else if (gamma.fixed[1] == TRUE){	gamma.fixed = matrix(0.5, nrow = 2^M-1, ncol = numHazards)
+	# If the user only enters one vector of gammas (for the NPH case), set that vector to all hazards		
+	} else if (!is.logical(gamma.fixed[1]) & length(gamma.fixed) == 2^M-1 & numHazards > 1){ 
+		gamma.fixed = matrix(gamma.fixed, nrow = 2^M-1, ncol = numHazards)
+	# If the number of gammas entered does not match the number of hazards, sent and error messge
+	} else if (!is.logical(gamma.fixed[1]) & length(gamma.fixed) != (2^M-1)*numHazards){
+		stop(paste("Incorrect number of gamma values entered:", 2^M-1, "fixed gamma values needed"))
+	} else if (!is.logical(gamma.fixed[1]) & length(which(gamma.fixed < 0 | gamma.fixed > 1)) > 0){
+		stop("All values of gamma must be between 0 and 1")	}
+	
+	###########################################################################################
 	#		Call the correct routine
 	###########################################################################################
-	# Basic MRH 
-	if(missing(lambda.init)){	lambda.init = NULL	}
-	if(missing(k.fixed)){	k.fixed = 0.5	}
+	#################################### PH MODEL ####################################
 	if(nonph.model == FALSE){
-		if(missing(gamma.fixed)){	gamma.fixed = rep(0.5, 2^M-1)	}
-		outputdata = MRHCovPH(Mval = M, Ti = Ti, X = Xmatrix, delta = delta, censortime = censortime,
-							  outfilename = outfolder, prune.indc = prune.indicator, burnIn = burnIn, 
-							  maxIter = maxIter, thin = thin, RmpInit = RmpInit, a.init = a.init, 
-							  lambda.init = lambda.init, beta.init = beta.init, k = k.fixed, 
-							  gamma.mp = gamma.fixed, GR = GR, convGraphs = convGraphs, fix.burnIn = fix.burnIn,
-							  fix.thin = fix.thin, fix.max = fix.max, writenum = writenum, 
-							  sysseconds = sysseconds, systemtime = systemtime, checknum = checknum)
+		if(k.fixed == FALSE & gamma.fixed[1] == FALSE){ sampletype = 'kandg'
+        } else if(k.fixed == FALSE & gamma.fixed[1] != FALSE){  sampletype = 'konly'
+        } else if(k.fixed != FALSE & gamma.fixed[1] == FALSE){  sampletype = 'gonly'
+        } else {    sampletype = 'simple'   }
+        outputdata = PHshell(Mval = M, Ti = Ti, delta = delta, X = Xmatrix, outfilename = outfolder,
+                                censortime = censortime, prune.indc = prune.indicator, burnIn = burnIn,
+                                maxIter = maxIter, thin = thin, RmpInit = Rmp.init, a.init = a.init,
+                                lambda.init = lambda.init, beta.init = beta.init, k = k.fixed,
+                                gamma.mp = gamma.fixed, GR = GR, fix.burnIn = fix.burnIn,
+                                fix.thin = fix.thin, fix.max = fix.max, writenum = writenum,
+                                sysseconds = sysseconds, systemtime = systemtime, checknum = checknum,
+                                sampletype = sampletype, continue.chain = continue.chain, k.init = k.init,
+                                gamma.init = gamma.init, loopctr.start = loopctr.start)
+                                
+		######## Calculate the log-likelihood values, the information criteria values, make the convergence graphs, make the summaries
+		finaldata = read.table(paste(outfolder, '/MCMCchains.txt', sep = ''), header = TRUE)
+		# Log likelihood and AIC, BIC, DIC
+		ICinfo = loglikePH(finaldata = finaldata, numEstParams = outputdata$numberofEstParams, censortime = censortime, Mval = M,
+                            numParams = outputdata$numParams, delta = delta, failBin = outputdata$failBin,
+							inBin = outputdata$inBin, outfilename = outfolder, X = Xmatrix)
+        nameshazgroups = NULL
+        numHazards = 1
+	#################################### NPH MODEL ####################################
 	# Non-proportional MRH
 	} else {
-		if(missing(gamma.fixed)){	gamma.fixed = matrix(0.5, nrow = 2^M-1, ncol = numHazards)	}
-		outputdata = MRHCovNPHBA(Mval = M, Ti = Ti, Xfixed = Xmatrix, XNPH = X.nonproportional, 
+		if(k.fixed[1] == FALSE & gamma.fixed[1] == FALSE){ sampletype = 'kandg'
+        } else if(k.fixed[1] == FALSE & gamma.fixed[1] != FALSE){ sampletype = 'konly'
+        } else if(k.fixed[1] != FALSE & gamma.fixed[1] == FALSE){ sampletype = 'gonly'
+        } else {    sampletype = 'simple'   }
+		outputdata = NPHBAshell(Mval = M, Ti = Ti, Xfixed = Xmatrix, XNPH = X.nonproportional,
 								 prune.indc = prune.indicator, delta = delta, outfilename = outfolder, 
-								 burnIn = burnIn, maxIter = maxIter, thin = thin, RmpInit = RmpInit, 
+								 burnIn = burnIn, maxIter = maxIter, thin = thin, RmpInit = Rmp.init,
 								 a.init = a.init, lambda.init = lambda.init, beta.init = beta.init, 
-								 k = k.fixed, gamma.mp = gamma.fixed, censortime = censortime, 
-								 GR = GR, convGraphs = convGraphs, fix.burnIn = fix.burnIn,
+								 censortime = censortime, GR = GR, convGraphs = convGraphs, fix.burnIn = fix.burnIn,
 								 fix.thin = fix.thin, fix.max = fix.max, writenum = writenum, 
-								 sysseconds = sysseconds, systemtime = systemtime, checknum = checknum)
+								 sysseconds = sysseconds, systemtime = systemtime, checknum = checknum,
+                                 sampletype = sampletype, continue.chain = continue.chain, k.init = k.init,
+                                 gamma.init = gamma.init, loopctr.start = loopctr.start)
+
+		######## Calculate the log-likelihood values, the information criteria values, make the convergence graphs, make the summaries
+        IDtypes = names(table(X.nonproportional))
+        IDtypes = IDtypes[order(IDtypes)]
+        numHazards = length(IDtypes)
+        indices = list(which(X.nonproportional == IDtypes[1]))
+        for(hazCtr in 2:numHazards){
+            indices = c(indices, list(which(X.nonproportional == IDtypes[hazCtr])))
+        }
+		finaldata = read.table(paste(outfolder, '/MCMCchains.txt', sep = ''), header = TRUE)
+		ICinfo = loglikeNPH(finaldata, outputdata$numberofEstParams, censortime, M, outputdata$numParams, delta,
+                            outputdata$failBin, outputdata$inBin, outfolder, numHazards = numHazards,
+                            Xfixed = Xmatrix, numPHParams = outputdata$numPHParams, indices = indices)
+        nameshazgroups = ICinfo$namesHazGroups
 	}
+
+	########################### Plot the MCMC chain diagnostics ####################
+	if(convGraphs == TRUE){
+		convergenceGraphs(finaldata[,outputdata$assessIndex], paste(outfolder, '/convergenceGraphs', sep = ''), burnIn, thin)
+	}
+	########################### Summaries of MCMCchains	###########################
+	summarydata = AnalyzeComplete(M = M, censortime = censortime, finaldataset = finaldata,
+                                    outfilename = paste(outfolder, '/', sep = ''), numhazards = numHazards,
+                                    namesHazGroups = nameshazgroups)
+	if(nonph.model == TRUE){
+		if(outputdata$numPHParams > 0){
+			GraphNPbetas(M, dests = summarydata$d, np.betaests = summarydata$beta[-(1:outputdata$numPHParams),], 
+						 numhazgroups = numHazards, hazgroupnames = outputdata$namesHazGroups, censortime = censortime, 
+						 file = paste(outfolder, '/', sep = ''))
+		} else {
+			GraphNPbetas(M , dests = summarydata$d, np.betaests = summarydata$beta, 
+						 numhazgroups = numHazards, hazgroupnames = outputdata$namesHazGroups, censortime = censortime, 
+						 file = paste(outfolder, '/', sep = ''))
+		}
+	}		
+	
 	if(outputdata$convergence == FALSE){
 		warning(paste("Algorithm has not yet converged after ", outputdata$TotalIters, " MCMC iterations. 
 					  Parameter estimates may not be reliable. ", sep = ''))
 	}
-	return(outputdata)
+	if(GR == FALSE){ gr.used = 'Option not used' } else { gr.used = 'Option Used'	}
+    # Calculate final burn-in and thin values used
+    burnIn.final = finaldata[1,1]
+    thin.final = finaldata[2,1]-finaldata[1,1]
+	returndata = c(summarydata, ICinfo, list(burnIn = burnIn.final, thin = thin.final, TotalIters = outputdata$loopctr-1,
+				   convergence = outputdata$convergence, gelman.rubin.used = gr.used, fix.thin = fix.thin,
+				   fix.burnIn = fix.burnIn, fix.max = fix.max, initialValues = outputdata$initialValues,
+				   k.fixed = k.fixed, gamma.fixed = gamma.fixed, 
+				   runtime = paste(round((unclass(Sys.time()) - unclass(systemtime))/(60*60), 2), 'hours'), 
+				   outfolder = outfolder, maxStudyTime = censortime))
+	class(returndata) = "MRH"
+	return(returndata)
 		
 }

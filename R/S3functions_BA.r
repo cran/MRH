@@ -2,64 +2,6 @@
 # Contains the functions needed to: convert to an MRH object, summary, and plot for BA model.
 ###########################################################################################
 
-# print will eventually contain the call, etc (see lm results)
-callBAsummary = function(object, alpha.level){
-
-	firstgroup = substr(colnames(object)[2], 4, 4)
-	dnames = colnames(object)[which(substr(colnames(object), 1, 1) == 'd')]
-	numbins = length(which(unlist(strsplit(dnames, '_'))[1:length(dnames)*2] == firstgroup))
-	M = log(numbins)/log(2)
-	hazgroups = unique(unlist(strsplit(dnames, '_'))[1:length(dnames)*2])
-	numhazards = length(hazgroups)
-	
-	object = object[,-1]
-	title.lb = alpha.level/2*1000
-	if(alpha.level/2*1000 < 100){	title.lb = paste('0', title.lb, sep = '')	}
-	if(alpha.level/2*1000 < 10){	title.lb = paste('0', title.lb, sep = '')	}
-	title.ub = (1-alpha.level/2)*1000
-
-	################ Calculate the outputs for each parameter ################
-	### Calculate d
-	doutput = as.data.frame(t(sapply(1:(2^M*numhazards), function(x) 
-									 quantile(object[,x], probs = c(.5, alpha.level/2, 1-alpha.level/2)))))
-	names(doutput) = c('dEst', paste('dq', title.lb, sep = '.'), paste('dq', title.ub, sep = '.'))
-	row.names(doutput) = colnames(object)[1:(2^M*numhazards)]
-
-	### Calculate beta if there are any ###
-	betaoutput = as.data.frame(t(sapply((2^M*numhazards+1):(ncol(object)-(2^M-1)*numhazards-numhazards), function(x) 
-										quantile(object[,x], probs = c(.5, alpha.level/2, 1-alpha.level/2)))))
-	names(betaoutput) = c('betaEst', paste('betaq', title.lb, sep = '.'), paste('betaq', title.ub, sep = '.'))
-	row.names(betaoutput) = colnames(object)[(2^M*numhazards+1):(ncol(object)-(2^M-1)*numhazards-numhazards)]
-
-	#### Calculate the Rmps 
-	RmpInts = as.data.frame(t(sapply((ncol(object)-(2^M-1)*numhazards+1):ncol(object)-1, 
-							function(x) quantile(object[,x], probs = c(.5, alpha.level/2, 1-alpha.level/2)))))
-	names(RmpInts) = c('RmpEst', paste('Rmpq', title.lb, sep = '.'), paste('Rmpq', title.ub, sep = '.'))
-	row.names(RmpInts) = colnames(object)[(ncol(object)-(2^M-1)*numhazards+1):ncol(object)]
-
-	#### Calculate the cumulative hazard H
-	Houtput = as.data.frame(t(sapply((ncol(object)-(2^M-1)*numhazards-numhazards+1):
-									 (ncol(object)-(2^M-1)*numhazards), 
-									 function(x) quantile(object[,x], probs = c(.5, alpha.level/2, 1-alpha.level/2)))))
-	names(Houtput) = c('HEst', paste('Hq', title.lb, sep = '.'), paste('Hq', title.ub, sep = '.'))
-	row.names(Houtput) = colnames(object)[(ncol(object)-(2^M-1)*numhazards-numhazards+1):
-									(ncol(object)-(2^M-1)*numhazards)]
-
-	# d = 2^M*numhazards, Rmp = (2^M-1)*numhazards, nphbetas = 2^M*(numhazards-1), H = numhazards
-	# total is numhazards*(2^M+2^M-1+1) + 2^M*(numhazards-1) = numhazards*(2^M*2) + 2^M*(numhazards-1)
-	if(ncol(object) > numhazards*(2^M*2) + 2^M*(numhazards-1)){	
-		numPH = ncol(object)-(2^M*2*numhazards + 2^M*(numhazards-1))
-		output = list(doutput, betaoutput[1:numPH,], betaoutput[-(1:numPH),], Houtput, RmpInts)
-		names(output) = c('d', 'betaPH', 'betaNPH', 'H', 'Rmp')
-	} else { 
-		output = list(doutput, betaoutput, Houtput, RmpInts)
-		names(output) = c('d', 'betaNPH', 'H', 'Rmp')
-	}
-
-	return(output)
-}
-
-
 callBAplot = function(x, censortime, main, xlab, ylab, plot.type, smooth.graph, smooth.df, 
 combine.graphs, alpha.level, conf.int, log.ratio){
 
@@ -73,13 +15,13 @@ combine.graphs, alpha.level, conf.int, log.ratio){
 	# Get the parameter estimates #
 	if(plot.type == 'r'){
 		if(log.ratio == TRUE){
-			dests.temp = summary.MRH(x, alpha.level = alpha.level)$betaNPH
+			dests.temp = summary.MRH(x, alpha.level = alpha.level, maxStudyTime = censortime)$betaNPH
 		} else {
 			start.betas = substr(colnames(x), 1, 4)
 			end.betas = substr(colnames(x), nchar(colnames(x))-3, nchar(colnames(x)))
 			beta.nphindex = 1:(2^M*(numhazards-1)) + which(start.betas == 'beta' & end.betas == 'bin1')[1] - 1
 			x[,beta.nphindex] = exp(x[,beta.nphindex])
-			dests.temp = summary.MRH(x, alpha.level = alpha.level)$betaNPH
+			dests.temp = summary.MRH(x, alpha.level = alpha.level, maxStudyTime = censortime)$betaNPH
 		}
 	} else if(!missing(censortime)){
 		dests.temp = t(CalcFunction(x, function.type = plot.type, alpha.level = alpha.level, maxStudyTime = censortime)[[1]])[,c(2,1,3)]

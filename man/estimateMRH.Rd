@@ -9,9 +9,9 @@ estimateMRH is a function used to jointly estimate the hazard rate for time-to-e
 \usage{
 estimateMRH(formula, data, M, numberBins, maxStudyTime, outfolder = "MRHresults", 
 	prune = FALSE, prune.alpha = 0.05, prune.levels = NULL, burnIn = 50000, 
-	maxIter = 5e+05, thin = 10, RmpInit = NULL, a.init = 10, lambda.init, 
+	maxIter = 5e+05, thin = 10, Rmp.init = NULL, a.init = 10, lambda.init, 
 	beta.init = NULL, k.fixed, gamma.fixed, GR = FALSE, convGraphs = TRUE, 
-	fix.burnIn = FALSE, fix.thin = FALSE, fix.max = FALSE)
+	fix.burnIn = FALSE, fix.thin = FALSE, fix.max = FALSE, continue.chain = FALSE)
 }
 \arguments{
   \item{formula}{
@@ -50,7 +50,7 @@ The maximum number of iterations in the MCMC routine.  Default is 1,000,000.
 %%     ~~Describe \code{thin} here~~
 The thinning parameter that denotes the thinning of the MCMC chain to reduce autocorrelation.  Default value is 10.  See Details.   
 }
-  \item{RmpInit}{
+  \item{Rmp.init}{
 %%     ~~Describe \code{RmpInit} here~~
 The initial  values for Rmp (split) parameters.  If no values are entered, the default initial values is 0.5 for all Rmp.
 }
@@ -68,10 +68,10 @@ The initial value for "lambda", a parameter in the (Gamma) prior for the baselin
 The initial value(s) for the beta (covariate effect) parameter(s).  If no value is entered, the default values are obtained from the Cox proportional hazards estimates.
 }
 \item{k.fixed}{
-	The fixed value for k.  If no value is entered, k is set to 0.5, implying zero prior correlation among the hazard increments.  When k is greater than 0.5, the increments are positively correlated a priori.  Correspondingly, for k less than 0.5, the hazard increments will have negative prior correlation.  Future versions of the MRH package will allow the user to sample k in the MCMC routine.
+	Can either be a boolean indicator or a numeric value assigned to k, a parameter in the Beta prior for the split parameters Rmp. By default (or if set equal to TRUE), k is fixed at 0.5, implying zero prior correlation among the hazard increments.  The user may also specify the fixed value of k by entering a numeric value for k.fixed greater than 0.  When k is greater than 0.5, the increments are positively correlated a priori.  Correspondingly, for k less than 0.5, the hazard increments will have negative prior correlation. If k.fixed is set to FALSE, then k will be sampled in the MCMC routine.
 }
-\item{gamma.fixed}{  
-	The fixed value for the gamma parameters, with one gamma.mp associated with each Rmp, and E(Rmp) = gamma.mp.  The gamma parameter allows the user to a priori "center" the baseline hazard in each bin, and 0.5 assumes the centering occurs in the middle of the bin.  Future versions of the MRH package will allow the user to sample the gamma parameters in the MCMC routine.
+\item{gamma.fixed}{ 
+	Can either be a boolean indicator or a numeric vector of length 2^M-1 for values assigned to the gamma parameters (parameters in the Beta prior for the split parameters Rmp), with one gamma.mp associated with each Rmp, and E(Rmp) = gamma.mp.  The gamma parameter allows the user to a priori "center" the baseline hazard in each bin. If gamma.fixed is omitted or set equal to TRUE, the values are fixed at 0.5, assuming centering occurs in the middle of the bin.  The user may also specify values (between 0 and 1) for each gamma.  If gamma.fixed is set to FALSE, then each gamma parameter will be sampled in the MCMC routine.
 }	
 \item{GR}{
 %%     ~~Describe \code{GR} here~~
@@ -93,6 +93,9 @@ If set equal to TRUE, the specified thinning value (i.e. the "thin" value) will 
 %%     ~~Describe \code{fix.max} here~~
 If set equal to TRUE, the specified maximum number of iterations (i.e. the "maxIter" value) will be fixed throughout the routine, and will not be decreased, regardless of convergence diagnostics.  See details.
 }
+\item{continue.chain}{
+	If set to TRUE, the MCMC routine will continue running where the routine left off.  The same output folder (``outfolder"") must be used, and parameters will be initialized with the last recorded sample from the MCMC chain in the previous run.  Any thinning or burn-in specifications made in the model call will be ignored, and only values from the text file containing the chains will be used.  The maximum number of new iterations is specified by ``maxIter", and the new MCMC chains are appended to the existing text file in the output folder.
+}
 }
 \details{
 This function returns the estimate of the hazard rate using the Multi-Resolution Hazard (MRH) method.  The user must have the survival time and censoring variable for each subject.  Parameters are estimated using MCMC.
@@ -107,14 +110,18 @@ There may be instances in which the user may desire to combine some of the hazar
 }
 \value{
 estimateMRH returns a list with class MRH that contains the results of the MCMC algorithm. The routine also writes a file of the thinned and burned chain of MCMC iterations and saves pdf graphs of the hazard function with credible bounds in an MRH results folder (with the default title "MRHresults").  The components returned in the MRH fitted object are:
-\item{summary}{A summary table containing the rounded estimates and central credible intervals for H (the cumulative hazard), dj (the hazard estimate in each bin), and the beta estimate(s).  Estimates are calculated as the median of the thinned and burned MCMC chain, and bounds on the credible intervals are calculated as the 2.5\% and 97.5\% of the thinned and burned MCMC chain.}
-\item{d}{The estimate and lower and upper bounds of the 95\% central credible interval for each d for each bin.}
-\item{H}{The estimate and lower and upper bounds of the 95\% central credible interval for the baseline hazard H.}
-\item{Rmp}{The estimate and lower and upper bounds of the 95\% central credible interval for each Rmp.}
-\item{beta}{The estimate and lower and upper bounds of the 95\% central credible interval for the beta estimates.  This can include the log-ratios of the non-proportional hazards if the non-proportional assumption is used.}
-\item{hazardRate}{The estimate and lower and upper bounds of the 95\% central credible interval for the hazard rate estimates in each bin.}
-\item{AIC}{Akaike's Information Criterion, calculated as 2k-2ln(L), where k is the number of parameters in the model and ln(L) is the minimum of the likelihood values calculated at each chain iteration.  Note the the number of parameters 'k' will always be equal to the number of covariates added to the model, plus 2^M to account for the Rmp and cumulative hazard estimates.}
-\item{BIC}{Bayesian Information Criterion, calculated as -2ln(L) + k*log(n)}
+\item{summary}{A summary table containing the rounded estimates and central credible intervals for the estimates of the within-bin hazard rate (labeled ``h.binj" for the jth bin) and the covariate effects.  Estimates are calculated as the median of the thinned and burned MCMC chain, and bounds on the credible intervals are calculated as the 2.5\% and 97.5\% of the thinned and burned MCMC chain.}
+\item{hazardRate}{The estimate and lower and upper bounds of the 95\% central credible interval for the hazard rate in each bin (labeled ``h.binj" for the hazard rate of bin j).}
+\item{beta}{The estimate and lower and upper bounds of the 95\% central credible interval for the covariate effects.  This can include the log-ratios of the non-proportional hazards if the non-proportional assumption is used, which are labeled with ``binj" following the covariate name to denote the log-ratio estimate within the jth bin.}
+\item{SurvivalCurve}{The estimate and lower and upper bounds of the 95\% central credible interval for the survival curve. In the non-proportional hazards setting, separate survival curves and credible intervals are provided for each strata of the covariate.}
+\item{CumulativeHazard}{The estimate and lower and upper bounds of the 95\% central credible interval for the cumulative hazard. In the non-proportional hazards setting, separate cumulative hazard curves and credible intervals are provided for each strata of the covariate.}
+\item{d}{The estimate and lower and upper bounds of the 95\% central credible interval for the within-bin cumulative hazard (denoted as `d') for each bin.}
+\item{H}{The estimate and lower and upper bounds of the 95\% central credible interval for the baseline cumulative hazard H at the end of the study (denoted as `H00' or 'H(tJ)' in manuscripts).}
+\item{Rmp}{The estimate and lower and upper bounds of the 95\% central credible interval for the split parameters Rmp.}
+\item{gamma}{The estimate and lower and upper bounds of the 95\% central credible interval for the gamma parameter (used in the prior for the Rmp split parameters). This is only returned to the user if k.fixed is set equal to FALSE when fitting the model.}
+\item{k}{The estimate and lower and upper bounds of the 95\% central credible interval for the k parameters (used in the priors for the Rmp split parameters). This is only returned to the user if gamma.fixed is set equal to FALSE when fitting the model.}
+\item{AIC}{Akaike's Information Criterion, calculated as 2p-2ln(L), where k is the number of parameters in the model and ln(L) is the minimum of the likelihood values calculated at each chain iteration.  The number of parameters `p' is calculated as 2^M (one for each split parameter Rmp, and one for the cumulative hazard at H), plus 2 for a and lambda (parameters in the Gamma prior for H), and one for each covariate included under the proportional hazards assumption.  If k and/or gamma (parameters in the prior for Rmp) are sampled, the number of estimated parameters is increased by 1 for k and 2^M-1 for gamma.  If a covariate is included under the non-proportional hazards assumption, the number of estimated parameters (excluding any covariates included under the proportional hazards assumption) is multiplied by the number of strata in the non-proportional covariate.}
+\item{BIC}{Bayesian Information Criterion, calculated as -2ln(L) + p*log(n)}
 \item{DIC}{Deviance Information Criterion, calculated as .5*var(-2*ln(L)) + mean(-2ln(L)), where ln(L) is calculated at each retained chain iteration.}
 \item{burnIn}{The number of iterations burned during the MCMC routine.}
 \item{thin}{The thinning parameter used to account for autocorrelation.}
@@ -125,6 +132,8 @@ estimateMRH returns a list with class MRH that contains the results of the MCMC 
 \item{fix.burnin}{A TRUE/FALSE indicator denoting whether the burn-in value was fixed by the user.}
 \item{fix.max}{A TRUE/FALSE indicator denoting whether the maximum value was fixed by the user.}
 \item{InitialValues}{The initial values of the parameters at the start of the MCMC chain.}
+\item{gamma.fixed}{Returns the fixed value of gamma or FALSE if the gamma parameters are sampled.}
+\item{k.fixed}{Returns the fixed value of k or FALSE if k is sampled.}
 \item{runtime}{The amount of time the routine ran in hours}
 \item{outfolder}{The pathname of the folder containing the MCMC chains and the graphical output produced by the routine.}
 \item{maxStudyTime}{The maximum time in the study (either as a censored observation or an observed failure)}
@@ -146,11 +155,18 @@ http://amath.colorado.edu/faculty/vdukic/software/MRH.html
 Yolanda Hagar <yolanda.hagar@colorado.edu>
 }
 \examples{
+#####################################################
+# NOTE: Examples may take a few minutes, so please be
+# patient. In addition, warning messages about
+# convergence may appear as more iterations are
+# typically needed for chain convergence.  
+	
 ########### PROPORTIONAL HAZARDS EXAMPLE ############
 # Examine the NCCTG lung cancer data set (from the survival package),  
 # and quantify how age, gender, and physician rated 
 # Karnofsky performance scores affect survival times (in days).  
 # Assume the hazards are proportional for all covariates.
+
 data(cancer)
 
 # Adjust "status" so that it is a 0/1 
@@ -167,15 +183,25 @@ cancer$censorvar = cancer$status - 1
 # thinning value, and maximum number
 # of iterations, but for illustrative purposes 
 # these values have been lowered.
-\donttest{fit.lung = estimateMRH(formula = Surv(time, censorvar) ~ 
+\dontrun{
+fit.lung = estimateMRH(formula = Surv(time, censorvar) ~ 
 	age + as.factor(sex) + ph.karno, data = cancer,
 	M = 3, maxStudyTime = 960, burnIn = 200, maxIter = 1000, 
 	thin = 1, outfolder = 'MRH_lung')}
+\dontshow{
+fit.lung = estimateMRH(formula = Surv(time, censorvar) ~ 
+	age + as.factor(sex) + ph.karno, data = cancer,
+	M = 2, maxStudyTime = 960, burnIn = 50, maxIter = 100, 
+	thin = 1, outfolder = 'MRH_lung')}
 
 # See all items returned in the model fit
-\donttest{fit.lung}
+\dontrun{
+	fit.lung
+}
 # See the main summary
-\donttest{fit.lung$summary}
+\dontrun{
+fit.lung$summary
+}
 # NOTE: If estimateMRH is run as a background job, 
 # the fit can be calculated using the as.MRH() and
 # summary.MRH() functions.  See the help pages or 
@@ -183,7 +209,8 @@ cancer$censorvar = cancer$status - 1
 
 # Run the same model as above, but with pruning. 
 # Save the output in a folder titled 'MRH_lung_prune'
-\donttest{fit.lung.prune = estimateMRH(formula = Surv(time, censorvar) ~ 
+\dontrun{
+fit.lung.prune = estimateMRH(formula = Surv(time, censorvar) ~ 
 	age + as.factor(sex) + ph.karno, data = cancer,
 	M = 3, maxStudyTime = 960, burnIn = 200, maxIter = 1000, 
 	thin = 1, prune = TRUE, outfolder = 'MRH_lung_prune')}
@@ -201,11 +228,14 @@ data(tongue)
 # thinning value, and maximum number
 # of iterations, but for illustrative purposes 
 # these values have been lowered.
-\donttest{fit.tongue = estimateMRH(formula = Surv(time, delta) ~ 
+\dontrun{
+fit.tongue = estimateMRH(formula = Surv(time, delta) ~ 
 	nph(type), data = tongue, M = 4, 
 	burnIn = 200, maxIter = 2000, thin = 1, 
 	outfolder = 'MRH_tongue_nph')}
 
-# Get the hazard ratios
-\donttest{fit.tongue$beta}
+# Get the time-varying hazard ratios 
+\dontrun{
+	fit.tongue$beta
+}
 }

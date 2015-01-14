@@ -45,11 +45,10 @@ convergeFxn = function(dataset){
 }
 
 convergenceGraphs = function(dataset, graphname, burn.in, thin.val){
-	
-	paramNames = names(dataset)
-	
+
+    paramNames = names(dataset)
 	byThrees = seq(1, ncol(dataset)-3, by = 3)
-	
+
 	masize = floor(nrow(dataset)/10)
 	if(masize == 0){	masize = 1	}
 	

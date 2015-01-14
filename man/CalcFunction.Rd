@@ -39,22 +39,26 @@ An MRH object: either the fitted model from the estimateMRH() routine or the tex
 # been run and the outfolder ('MRH_lung') is saved.
 data(cancer)
 cancer$censorvar = cancer$status - 1
-\donttest{fit.lung = estimateMRH(formula = Surv(time, censorvar) ~ 
+\dontrun{
+fit.lung = estimateMRH(formula = Surv(time, censorvar) ~ 
 	age + as.factor(sex) + ph.karno, data = cancer,
 	M = 3, maxStudyTime = 960, burnIn = 200, 
 	maxIter = 1000, thin = 1, outfolder = 'MRH_lung')}
 
 # Get the cumulative hazard with 99% credible interval bounds
-\donttest{CalcFunction(fit.lung, function.type = 'H', 
+\dontrun{
+CalcFunction(fit.lung, function.type = 'H', 
 	alpha.level = .01)}
 
 # Get the hazard rate, cumulative hazard, and 
 # survival function using the MCMC chains text file
-\donttest{lung.chains = MRH(read.table('MRH_lung/MCMCchains.txt', header = TRUE))}
+\dontrun{
+lung.chains = MRH(read.table('MRH_lung/MCMCchains.txt', header = TRUE))}
 
 # The first line of code gives an error message.  
 # When the chains are used, the maximum study time 
 # must be entered to calculate the hazard rate.
 # CalcFunction(lung.chains) # does not work
-\donttest{CalcFunction(lung.chains, maxStudyTime = 960)}
+\dontrun{
+CalcFunction(lung.chains, maxStudyTime = 960)}
 }

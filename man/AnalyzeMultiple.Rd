@@ -32,12 +32,16 @@ A TRUE or FALSE value denoting whether the Gelman-Rubin diagnostic convergence t
 If the Gelman-Rubin test is used, the MCMC chains must satisfy the assumptions needed for the test and the initial parameter values used to estimate the posteriors must be dispersed across the parameter space.  In addition, the burn-in number, thinning value, and maximum number of iterations must be equal across all chains.  This can be enforced in estimateMRH() by setting GR equal to TRUE.  Because setting GR equal to TRUE fixes the burn-in number, thinning value, and maximum number of iterations, it is critical that the user enter values that are sufficient for convergence, while optimizing the run time for the fitted MRH model.
 }
 \value{
-\item{d}{The estimated hazard rate increments for each of the $2^M$ bins, with the medians and (alpha/2, 1-alpha/2) quantiles of the posterior distribution for each d reported.}
+\item{hazardRate}{The medians and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for the hazard rate within each bin.}
 \item{beta}{The medians and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for each covariate.}
-\item{H}{The median and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for the cumulative hazard reported.}
-\item{Rmp}{The medians and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for each Rmp reported.}
-\item{hazardrate}{The hazard rate estimates for each of the 2^M bins.}
-\item{gelman.rubin}{If TRUE, the results of the Gelman-Rubin test.  The chains have converged of the scale reduction factor is "close enough" to 1.}
+\item{SurvivalCurve}{The medians and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for the survival curve.}
+\item{CumulativeHazard}{The medians and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for the cumulative hazard over the course of the study.}
+\item{d}{The estimated cumulative hazard rate increments for each of the $2^M$ bins, with the medians and (alpha/2, 1-alpha/2) quantiles of the posterior distribution for each d reported.}
+\item{H}{The median and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for the cumulative hazard H at the end of the study.}
+\item{Rmp}{The medians and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for each of the split parameters (Rmp).}
+\item{gamma}{The medians and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for each of the gamma parameters (used in the posterior of the Rmp split parameters).  This is only returned to the user if the gamma parameters were sampled in the original MCMC sampling routine.}
+\item{k}{The medians and alpha/2\% and 1-alpha/2\% quantiles of the posterior distribution for k (used in the posterior of the Rmp split parameters).  This is only returned to the user if k was sampled in the original MCMC sampling routine.}
+\item{gelman.rubin}{If option is set to TRUE, the results of the Gelman-Rubin test.  The chains have converged of the scale reduction factor is "close enough" to 1.}
 }
 \author{
 	Yolanda Hagar
@@ -52,7 +56,8 @@ If the Gelman-Rubin test is used, the MCMC chains must satisfy the assumptions n
 
 data(cancer)
 cancer$censorvar = cancer$status - 1
-\donttest{fit.lung1 = estimateMRH(formula = Surv(time, censorvar) ~ 
+\dontrun{
+fit.lung1 = estimateMRH(formula = Surv(time, censorvar) ~ 
 	age + as.factor(sex) + ph.karno, data = cancer,
 	M = 3, maxStudyTime = 960, burnIn = 200, maxIter = 1000, 
 	thin = 1, outfolder = 'MRH_lung1', GR = TRUE)
@@ -67,7 +72,8 @@ fit.lung3 = estimateMRH(formula = Surv(time, censorvar) ~
 
 # Calculate the results of all three chains and the 
 # scale reduction factor entering the data sets in a list
-\donttest{AnalyzeMultiple(datalist = 
+\dontrun{
+AnalyzeMultiple(datalist = 
 	list(read.table('MRH_lung1/MCMCchains.txt', header = TRUE), 
 	read.table('MRH_lung2/MCMCchains.txt', header = TRUE),
 	read.table('MRH_lung2/MCMCchains.txt', header = TRUE)), 
@@ -75,7 +81,8 @@ fit.lung3 = estimateMRH(formula = Surv(time, censorvar) ~
 
 # Calculate the results of all three chains and the 
 # scale reduction factor entering the data file names
-\donttest{AnalyzeMultiple(fileNames = c('MRH_lung1/MCMCchains.txt', 
+\dontrun{
+AnalyzeMultiple(fileNames = c('MRH_lung1/MCMCchains.txt', 
 				'MRH_lung2/MCMCchains.txt', 'MRH_lung2/MCMCchains.txt'), 
 				maxStudyTime = 960)}
 }

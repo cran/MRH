@@ -118,117 +118,58 @@ calcXIndics = function(mat01, bin_ratio, M){
 #	3. Plot the smoothed hazard rate with credible intervals.
 # The graphs are saved to files, and the estimates and intervals are returned to the user.
 ###########################################################################################
-AnalyzeComplete = function(M, censortime, finaldataset, outfilename, betanames = NULL, graphs = TRUE){
+AnalyzeComplete = function(M, censortime, finaldataset, outfilename, graphs = TRUE, numhazards, namesHazGroups){
 	
-	substr.5 = substr(names(finaldataset), 1, 5)
-	substr.4 = substr(names(finaldataset), 1, 4)
-	substr.3 = substr(names(finaldataset), 1, 3)
-	substr.1 = substr(names(finaldataset), 1, 1)
+	# Get the summaries for the data set
+	param.summs = summary(as.MRH(finaldataset), maxStudyTime = censortime)
 
-	any.betas = any.ks = any.gammas = FALSE
-	if(length(which(substr.5 == 'gamma')) > 0){
-		any.gammas = TRUE
-		gamma.loc = which(substr.5 == 'gamma')
-	}
-	if(length(which(substr.4 == 'beta')) > 0){	
-		any.betas = TRUE	
-		beta.loc = which(substr.4 == 'beta')
-	}
-	if(length(which(substr.1 == 'k')) > 0){	
-		any.ks = TRUE	
-		k.loc = which(substr.1 == 'k')
-	}
-	H.loc = which(substr.1 == 'H')
-	Rmp.loc = which(substr.3 == 'Rmp')
-	d.loc = which(substr.1 == 'd')
-	
-	############# Calculate and graph the hazard rate ############
-	# Calculate the medians and bounds for d #
-	doutput = ACniceOutput(finaldataset, 1:2^M)
-	dInts = doutput[[1]]
-
+    ############# Calculate and graph the hazard rate ############
 	if(graphs == TRUE){
-		# Plot the ds over time
-		plotCIs(M, censortime, dInts[,c(2,1,3)]/(censortime/2^M), paste(outfilename, 'HazardRateGraph', sep = ''))
-	
-		if(M > 1){
-			# Calculate and plot the smooth ds over time 
-			timePts = seq(censortime/2^M, censortime, by = censortime/2^M)-.5*censortime/2^M
-			smoothdInts = smooth.spline(dInts[,1]/(censortime/2^M)~timePts, df = 2^M/2)$y
-			smoothdInts = cbind(smoothdInts, smooth.spline(dInts[,2]/(censortime/2^M)~timePts, df = 2^M/2)$y)
-			smoothdInts = cbind(smoothdInts, smooth.spline(dInts[,3]/(censortime/2^M)~timePts, df = 2^M/2)$y)
-			plotCIsSmooth(M, censortime, smoothdInts[,c(2,1,3)], paste(outfilename, 'HazardRateSmoothGraph', sep = ''))
+		for(hazCtr in 1:numhazards){
+			# Plot the ds over time
+			if(numhazards == 1){
+				plotCIs(M, censortime, param.summs$hazardRate[1:2^M+(hazCtr-1)*2^M,c(2,1,3)], 
+						paste(outfilename, 'HazardRateGraph', sep = ''))
+			} else {
+				plotCIs(M, censortime, param.summs$hazardRate[1:2^M+(hazCtr-1)*2^M,c(2,1,3)], 
+						paste(outfilename, 'HazardRateGraph', namesHazGroups[hazCtr], sep = ''))
+			}
+			if(M > 1){
+				# Calculate and plot the smooth ds over time 
+				timePts = seq(censortime/2^M, censortime, by = censortime/2^M)-.5*censortime/2^M
+				smoothdInts = smooth.spline(param.summs$hazardRate[1:2^M+(hazCtr-1)*2^M,1]~timePts, df = 2^M/2)$y
+				smoothdInts = cbind(smoothdInts, smooth.spline(param.summs$hazardRate[1:2^M+(hazCtr-1)*2^M,2]~timePts, df = 2^M/2)$y)
+				smoothdInts = cbind(smoothdInts, smooth.spline(param.summs$hazardRate[1:2^M+(hazCtr-1)*2^M,3]~timePts, df = 2^M/2)$y)
+				if(numhazards == 1){
+					plotCIsSmooth(M, censortime, smoothdInts, paste(outfilename, 'HazardRateSmoothGraph', sep = ''))
+				} else {
+					plotCIsSmooth(M, censortime, smoothdInts, paste(outfilename, 'HazardRateSmoothGraph', namesHazGroups[hazCtr], sep = ''))
+				}
+			}
 		}
 	}
 	
 	############ Create the summary table #################
-	#### d ######
-	summaryTable = doutput[[2]]
-	doutput = as.data.frame(dInts)
-	names(doutput) = c('dEst', 'dq025', 'dq975')
-	row.names(doutput) = paste('d', 1:2^M, sep = '')
-	
-	########### H ###########
-	Houtput = ACniceOutput(finaldataset, H.loc)
-	H.info = Houtput[[1]]
-	summaryTable = rbind(Houtput[[2]], summaryTable)
-	Houtput = as.data.frame(H.info)
-	names(Houtput) = c('HEst', 'Hq025', 'Hq975')
-	row.names(Houtput) = names(finaldataset)[H.loc]	
-	
-	########## beta ###########
-	if(any.betas == TRUE){
-		betaoutput = ACniceOutput(finaldataset, beta.loc)
-		betas = betaoutput[[1]]
-		summaryTable = rbind(summaryTable, betaoutput[[2]])
-		betaoutput = as.data.frame(betas)
-		names(betaoutput) = c('betaEst', 'betaq025', 'betaq975')
-		row.names(betaoutput) = names(finaldataset)[beta.loc]
-	}
-	############ k #########
-	if(any.ks == TRUE){
-		koutput = ACniceOutput(finaldataset, k.loc)
-		k = koutput[[1]]
-		k.output = as.data.frame(k)
-		names(k.output) = c('kEst', 'kq025', 'kq975')
-		row.names(k.output) = names(finaldataset)[k.loc]
-	}
-	######### gamma #########
-	if(any.gammas == TRUE){
-		gammaoutput = ACniceOutput(finaldataset, gamma.loc)
-		gamma = gammaoutput[[1]]
-		gamma.output = as.data.frame(gamma)
-		names(gamma.output) = c('gammaEst', 'gammaq025', 'gammaq975')
-		row.names(gamma.output) = names(finaldataset)[gamma.loc]
-	}
-	########## Rmp ###########	
-	RmpInts = as.data.frame(ACniceOutput(finaldataset, Rmp.loc)[[1]])
-	names(RmpInts) = c('RmpEst', 'Rmpq025', 'Rmpq975')
-	row.names(RmpInts) = names(finaldataset)[Rmp.loc]
-	
+	summaryTable = ACniceOutput(param.summs$hazardRate)
+    if('beta' %in% names(param.summs)){    any.betas = TRUE    } else {    any.betas = FALSE   }
+	if(any.betas == TRUE){ summaryTable = rbind(summaryTable, ACniceOutput(param.summs$beta))	}
+		
 	# Organize the summary table
 	summaryTable = as.data.frame(summaryTable)
 	names(summaryTable) = c('Estimate', 'CredibleInterval')
-	rownames =  c(names(finaldataset)[H.loc], paste('d', 1:2^M, sep = ''))
-	if(any.betas == TRUE){	rownames = c(rownames, names(finaldataset)[beta.loc])	}
-	if(any.ks == TRUE){	rownames = c(rownames, names(finaldataset)[k.loc])	}
-	if(any.gammas == TRUE){	rownames = c(rownames, names(finaldataset)[gamma.loc])	}
-	row.names(summaryTable) = rownames
+	temprownames =  rownames(param.summs$hazardRate)
+	if(any.betas == TRUE){	temprownames = c(temprownames, rownames(param.summs$beta))	}
+    row.names(summaryTable) = temprownames
 	
-	output = list(summary = summaryTable, d = doutput, H = Houtput, Rmp = RmpInts)
-	if(any.betas == TRUE){	output = c(output, list(beta = betaoutput))	}
-	if(any.ks == TRUE){	output = c(output, list(k = k.output))	}
-	if(any.gammas == TRUE){	output = c(output, list(gamma = gamma.output))	}
+	output = c(list(summary = summaryTable), param.summs)
+	
 	return(output)
 }
 
-ACniceOutput = function(dataset, index){
+ACniceOutput = function(output){
 	
-	output1 = t(sapply(index, function(x) quantile(dataset[,x], probs = c(.5, .025, .975))))
-	output2 = cbind(round(output1[,1], 3), 
-					paste("(",round(output1[,2], 3), ", ", round(output1[,3], 3), ")", sep = ''))
-	
-	return(list(output1, output2))
+	output2 = cbind(round(output[,1], 3), paste("(",round(output[,2], 3), ", ", round(output[,3], 3), ")", sep = ''))
+		return(output2)
 }
 																							
 GraphNPbetas = function(M, dests, np.betaests, numhazgroups, hazgroupnames, censortime, file){
@@ -245,7 +186,7 @@ GraphNPbetas = function(M, dests, np.betaests, numhazgroups, hazgroupnames, cens
 		points(xvals, pbfxn(2^M, censortime/2^M, dests[1:2^M+2^M*(hazCtr-1),2]/binwidth)$y, type = 'l', lty = 2)
 		points(xvals, pbfxn(2^M, censortime/2^M, dests[1:2^M+2^M*(hazCtr-1),3]/binwidth)$y, type = 'l', lty = 2)
 		box()
-		axis(1, at = 0:6*2, labels = 0:6*2, cex.axis = .75, padj = -2)
+		axis(1, at = round(xvals), labels = round(xvals), cex.axis = .75, padj = -2)
 		mtext('Time', side = 1, padj = 1.5, cex = .8)
 		if(hazCtr %% 2 != 0){	axis(2, padj = 1.25)	}
 	}
@@ -282,7 +223,7 @@ GraphNPbetas = function(M, dests, np.betaests, numhazgroups, hazgroupnames, cens
 		points(xvals, pbfxn(2^M, censortime/2^M, np.betaests[1:2^M+2^M*(ratioCtr-1),2])$y, type = 'l', lty = 2)
 		points(xvals, pbfxn(2^M, censortime/2^M, np.betaests[1:2^M+2^M*(ratioCtr-1),3])$y, type = 'l', lty = 2)
 		box()
-		axis(1, at = 0:6*2, labels = 0:6*2, cex.axis = .75, padj = -2)
+		axis(1, at = round(xvals), labels = round(xvals), cex.axis = .75, padj = -2)
 		mtext('Time', side = 1, padj = 1.5, cex = .8)
 		if(ratioCtr %% 2 != 0){	axis(2, padj = 1.25)	}
 	}
@@ -326,7 +267,7 @@ GraphNPbetas = function(M, dests, np.betaests, numhazgroups, hazgroupnames, cens
 		points(timepts, smoothds[1:2^M+(hazCtr-1)*2^M,2], type = 'l', lty = 2)
 		points(timepts, smoothds[1:2^M+(hazCtr-1)*2^M,3], type = 'l', lty = 2)
 		box()
-		axis(1, at = 0:6*2, labels = 0:6*2, cex.axis = .75, padj = -2)
+		axis(1, at = round(xvals), labels = round(xvals), cex.axis = .75, padj = -2)
 		mtext('Time', side = 1, padj = 1.5, cex = .8)
 		if(hazCtr %% 2 != 0){	axis(2, padj = 1.25)	}
 	}
@@ -362,7 +303,7 @@ GraphNPbetas = function(M, dests, np.betaests, numhazgroups, hazgroupnames, cens
 		points(timepts, smoothbetas[1:2^M+2^M*(ratioCtr-1),2], type = 'l', lty = 2)
 		points(timepts, smoothbetas[1:2^M+2^M*(ratioCtr-1),3], type = 'l', lty = 2)
 		box()
-		axis(1, at = 0:6*2, labels = 0:6*2, cex.axis = .75, padj = -2)
+		axis(1, at = round(xvals), labels = round(xvals), cex.axis = .75, padj = -2)
 		mtext('Time', side = 1, padj = 1.5, cex = .8)
 		if(ratioCtr %% 2 != 0){	axis(2, padj = 1.25)	}
 	}
@@ -413,9 +354,9 @@ mainTitle = 'Hazard rate, smoothed', xlabel = 'Time', ylabel = 'Hazard estimate'
 	
 	timePts = seq(censortime/2^M, censortime, by = censortime/2^M) - .5*censortime/2^M
 	pdf(file = paste(graphname, '.pdf', sep = ''), width = 8, height = 6)
-	plot(timePts, plotvalues[,1], main = mainTitle, xlab = xlabel, ylab = ylabel, type = 'l',
+	plot(timePts, plotvalues[,2], main = mainTitle, xlab = xlabel, ylab = ylabel, type = 'l',
 		 lty = 2, ylim = range(plotvalues))
-	points(timePts, plotvalues[,2], type = 'l', lwd = 3)
+	points(timePts, plotvalues[,1], type = 'l', lwd = 3)
 	points(timePts, plotvalues[,3], type = 'l', lty = 2)
 	dev.off()
 }
@@ -619,3 +560,84 @@ FindRoundVals = function(dataset){
 	
 	return(round.values)
 }
+
+###########################################################################################
+# loglikePH calculates the -2*(log likelihood) value at each iteration of the MCMC chain
+# for the PH model.
+###########################################################################################
+loglikePH = function(finaldata, numEstParams, censortime, Mval, numParams, delta, failBin, inBin, outfilename, X){
+
+	nrow.data = nrow(finaldata)
+	binwidth = censortime/2^Mval
+    mat01 = calc_mat01(Mval)
+    n = nrow(failBin)
+	
+	Rmpvec = as.data.frame(matrix(NA, ncol = sum(2^(1:Mval)), nrow = nrow.data))
+	Rmpvec[,1:(sum(2^(1:Mval))/2)*2-1] = finaldata[,1:(2^Mval-1)+2^Mval+1+numParams+1]
+	Rmpvec[,1:(sum(2^(1:Mval))/2)*2] = 1-finaldata[,1:(2^Mval-1)+2^Mval+1+numParams+1]
+	
+	logds = matrix(rep(log(finaldata$H00), each = 2^Mval), ncol = 2^Mval, nrow = nrow.data, byrow = TRUE) + 
+					t(mat01%*%t(log(Rmpvec))) - log(binwidth)
+	if(numParams > 0){	Xbeta = rowSums(as.matrix(X[rep(1:n, nrow.data),])*(as.matrix(finaldata[,1:numParams + 2^Mval+1])[rep(1:nrow.data, each = n),]))
+	} else {    Xbeta = rep(0, n*nrow.data) }
+	totalone = rep(delta, nrow.data)*(rowSums(failBin[rep(1:n, nrow.data),]*(logds[rep(1:nrow.data, each = n),]))+Xbeta) -
+	rowSums(inBin[rep(1:n, nrow.data),]*(finaldata[,1:2^Mval+1][rep(1:nrow.data, each = n),]))*exp(Xbeta)
+	
+	logliks = rowSums(matrix(totalone, ncol = n, byrow = TRUE))
+	finaldata = as.data.frame(cbind(finaldata, logliks))
+	names(finaldata) = c(names(finaldata)[-ncol(finaldata)], 'neg2loglike')
+	write.table(finaldata, paste(outfilename, '/MCMCchains.txt', sep = ''), row.names = FALSE)
+	
+	AIC = 2*(numEstParams) - 2*min(logliks)
+	BIC = -2*min(logliks) + (numEstParams)*log(n)
+	DIC = .5*var(-2*logliks) + mean(-2*logliks)
+
+	return(list(AIC = AIC, BIC = BIC, DIC = DIC))
+}
+	
+###########################################################################################
+# loglikeNPH calculates the -2*(log likelihood) value at each iteration of the MCMC chain
+# for the NPH model.
+###########################################################################################
+loglikeNPH = function(finaldata, numEstParams, censortime, Mval, numParams, delta, failBin, inBin, outfilename, numHazards, Xfixed, numPHParams, indices){
+	
+	nrow.data = nrow(finaldata)
+	binwidth = censortime/2^Mval
+    n = nrow(failBin)
+    mat01 = calc_mat01(Mval)
+	Rmpvec = as.data.frame(matrix(NA, ncol = (2^Mval-1)*2*numHazards, nrow = nrow.data))
+	Rmpvec[,1:((2^Mval-1)*2*numHazards/2)*2-1] = 
+	finaldata[,1:((2^Mval-1)*numHazards) + 1+2^Mval*numHazards+numPHParams+2^Mval*(numHazards-1)+numHazards]
+	Rmpvec[,1:((2^Mval-1)*2*numHazards/2)*2] = 
+	1-finaldata[,1:((2^Mval-1)*numHazards) + 1+2^Mval*numHazards+numPHParams+2^Mval*(numHazards-1)+numHazards]
+	logds = NULL
+	for(hazctr in 1:numHazards){
+		logds = cbind(logds, 
+					  matrix(matrix(rep(log(finaldata[,1+numPHParams+2^Mval*(numHazards*2-1)+hazctr]), 
+										each = 2^Mval), ncol = 2^Mval, nrow = nrow.data, byrow = TRUE)+ 
+							 t(mat01%*%t(log(Rmpvec[,1:((2^Mval-1)*2)+(2^Mval-1)*2*(hazctr-1)]))) - 
+							 log(binwidth), nrow = nrow.data))
+	}
+	if(numPHParams > 0){	
+		Xbeta = rowSums(as.matrix(Xfixed[rep(1:n, nrow.data),])*(as.matrix(finaldata[,1:numPHParams+2^Mval*numHazards+1])[rep(1:nrow.data, each = n),]))
+	} else { Xbeta = rep(0, n*nrow.data)	}
+	hazBin = failBin[,rep(1:2^Mval, numHazards)]
+	cumulBin = inBin[,rep(1:2^Mval, numHazards)]
+	for(hazctr in 1:numHazards){
+		hazBin[(1:n)[-indices[[hazctr]]], 1:2^Mval + (hazctr-1)*2^Mval] = 0
+		cumulBin[(1:n)[-indices[[hazctr]]], 1:2^Mval + (hazctr-1)*2^Mval] = 0
+	}
+	totalone = rep(delta, nrow.data)*(rowSums(hazBin[rep(1:n, nrow.data),]*(logds[rep(1:nrow.data, each = n),]))+Xbeta) -
+	rowSums(cumulBin[rep(1:n, nrow.data),]*(finaldata[,1:(2^Mval*numHazards)+1][rep(1:nrow.data, each = n),]))*exp(Xbeta)
+	logliks = rowSums(matrix(totalone, ncol = n, byrow = TRUE))
+	finaldata = as.data.frame(cbind(finaldata, logliks))
+	names(finaldata) = c(names(finaldata)[-ncol(finaldata)], 'neg2loglike')
+	write.table(finaldata, paste(outfilename, '/MCMCchains.txt', sep = ''), row.names = FALSE)
+	
+	AIC = 2*(numEstParams) - 2*min(logliks)
+	BIC = -2*min(logliks) + (numEstParams)*log(n)
+	DIC = .5*var(-2*logliks) + mean(-2*logliks)
+	
+	return(list(AIC = AIC, BIC = BIC, DIC = DIC))
+}
+	

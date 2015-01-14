@@ -35,7 +35,8 @@ data(tongue)
 # thinning value, and maximum number
 # of iterations, but for illustrative purposes these values 
 # have been lowered.
-\donttest{fit.tongue = estimateMRH(formula = Surv(time, delta) ~ 
+\dontrun{
+fit.tongue = estimateMRH(formula = Surv(time, delta) ~ 
 	nph(type), data = tongue, M = 4, 
 	burnIn = 200, maxIter = 2000, thin = 1, 
 	outfolder = 'MRH_tongue_nph')}

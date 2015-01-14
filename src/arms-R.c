@@ -710,10 +710,10 @@ int meet (POINT *q, ENVELOPE *env, METROPOLIS *metrop)
     /* gradient on neither side - should be impossible */
       error("exit 31");
   }
-  if(((q->pl != NULL) && (q->x < q->pl->x)) ||
+/*  if(((q->pl != NULL) && (q->x < q->pl->x)) ||
      ((q->pr != NULL) && (q->x > q->pr->x))){
     /* intersection point outside interval (through imprecision) */
-      error("exit 32");
+/*      error("exit 32");
   }
   /* successful exit : intersection has been calculated */
   return 0;

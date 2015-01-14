@@ -16,7 +16,7 @@ smooth.df = NULL, combine.graphs = TRUE, log.ratio = TRUE,...)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x}{
-	x is an MRHobject: MCMC chains produced by the estimateMRH routine, converted to an MRH object using MRH() or as.MRH().
+	x is an MRHobject: Either 1) an MRH fitted object or 2) MCMC chains produced by the estimateMRH routine, converted to an MRH object using MRH() or as.MRH().
 }
   \item{maxStudyTime}{
 	The maximum observed or censored failure time needs to be entered when the text file of MCMC chains is used instead of the active MRH fitted object for calculation of the hazard rate.
@@ -58,33 +58,40 @@ smooth.df = NULL, combine.graphs = TRUE, log.ratio = TRUE,...)
 # are already in the active workspace.
 data(cancer)
 cancer$censorvar = cancer$status - 1
-\donttest{fit.lung = estimateMRH(formula = Surv(time, censorvar) ~ 
+\dontrun{
+fit.lung = estimateMRH(formula = Surv(time, censorvar) ~ 
 	age + as.factor(sex) + ph.karno, data = cancer,
 	M = 3, maxStudyTime = 960, burnIn = 200, maxIter = 1000, 
 	thin = 1, outfolder = 'MRH_lung')}
 
 data(tongue)
-\donttest{fit.tongue = estimateMRH(formula = Surv(time, delta) ~ 
+\dontrun{
+fit.tongue = estimateMRH(formula = Surv(time, delta) ~ 
 	nph(type), data = tongue, M = 4, 
 	burnIn = 200, maxIter = 2000, thin = 1, outfolder = 'MRH_tongue_nph')}
 	
 # Plot the hazard rate, cumulative hazard, 
 # and survival function of the lung model side-by-side:
-\donttest{par(mfrow = c(1,3))
+\dontrun{
+par(mfrow = c(1,3))
 plot(fit.lung, main = 'Hazard rate')
 plot(fit.lung, plot.type = 'H', main = 'Cumulative hazard')
 plot(fit.lung, plot.type = 'S', main = 'Survival function')}
 
 # Plot the hazard rates for the tongue (i.e. non-proportional hazards) 
 # model with smoothed estimates.
-\donttest{plot(fit.tongue, smooth.graph = TRUE)}
+\dontrun{
+plot(fit.tongue, smooth.graph = TRUE)}
 # Separate the graphs for less crowding
-\donttest{plot(fit.tongue, smooth.graph = TRUE, combine.graphs = FALSE)}
+\dontrun{
+plot(fit.tongue, smooth.graph = TRUE, combine.graphs = FALSE)}
 # Plot the hazard ratios
-\donttest{plot(fit.tongue, plot.type = 'r')}
+\dontrun{
+plot(fit.tongue, plot.type = 'r')}
 
 # Plot the hazard rate of the lung model using the chains. 
 # This requires maxStudyTime to be entered.
-\donttest{lung.chains = MRH(read.table('MRH_lung/MCMCchains.txt', header = TRUE))
+\dontrun{
+lung.chains = MRH(read.table('MRH_lung/MCMCchains.txt', header = TRUE))
 plot(lung.chains, maxStudyTime = 960)}
 }

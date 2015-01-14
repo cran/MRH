@@ -111,3 +111,30 @@ logbetaPost_NPHBA = function(beta, betaFull, deltavals, Xmatrix, Hvals, whichBet
 	(beta-mu.beta)^2/(2*sigma.beta^2)
 }
 
+######################################################################################
+#
+#						k Posteriors 
+#
+######################################################################################
+logkPost = function(k, gamma.mpval, a, Rmpvals, Rmp.exp, one_Rmp.ex, mvec, mu.k){
+	
+	k.pow.mvec = k^mvec
+	logpost = -k/mu.k + sum(Rmp.exp*log(Rmpvals) + one_Rmp.ex*log(1-Rmpvals) - 
+							lgamma(Rmp.exp*k.pow.mvec)+lgamma(one_Rmp.ex*k.pow.mvec)-
+							lgamma(Rmp.exp*k.pow.mvec+one_Rmp.ex*k.pow.mvec))
+	return(logpost)
+}
+
+######################################################################################
+#
+#						gamma Posteriors 
+#
+######################################################################################
+loggammaPost = function(gammamp, Rmp, kval, aval, cval, dval, mvecval){
+	
+	k.pow.mvec.timesa = kval^mvecval*aval
+	(2*gammamp*k.pow.mvec.timesa-1)*log(Rmp) + (2*(1-gammamp)*k.pow.mvec.timesa-1)*log(1-Rmp) - 
+	(cval-1)*log(gammamp) + (dval-1)*log(1-gammamp) - 
+	lgamma(2*gammamp*k.pow.mvec.timesa) - lgamma(2*(1-gammamp)*k.pow.mvec.timesa)
+}
+

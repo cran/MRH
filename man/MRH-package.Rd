@@ -5,7 +5,7 @@
 	Multi-resolution estimation of the hazard rate.
 }
 \description{
-	This package uses the multi-resolution hazard estimator for estimation and inference for the hazard rate.  The multi-resolution hazard estimator is a Bayesian semi-parametric method for estimating the hazard rate jointly with covariate effects.  This methodology splits the hazard rate into 2^M bins, and estimates a constant hazard rate within each bin using a tree-like structure, providing robust estimates of the hazard rate even through periods of sparse observations.  This package allows for covariates in the model with or without the proportional hazards assumption.
+	This package uses the multi-resolution hazard estimator for estimation and inference for the hazard rate.  The multi-resolution hazard estimator is a Polya tree-based Bayesian semi-parametric method for estimating the hazard rate jointly with covariate effects.  This methodology splits the hazard rate into 2^M bins, and estimates a constant hazard rate within each bin using a tree-like structure, providing robust estimates of the hazard rate even through periods of sparse observations.  This package allows for covariates in the model with or without the proportional hazards assumption.
 }
 \details{
 \tabular{ll}{
@@ -28,7 +28,7 @@ Bouman, P., Dignam, J., Dukic, V. (2007), A multiresolution hazard model for mul
 
 Dukic, V., Dignam, J. (2007), Bayesian hierarchical multiresolution hazard model for the study of time-dependent failure patterns in early stage breast cancer. \emph{Bayesian Analysis}. \bold{2,} 591--610.
 
-Hagar, Y., Albers, D., Pivavarov, R., Chase, H., Dukic, V., Elhadad, N. (2014), Survival analysis with Electronic Health Record data: Experiments with Chronic Kidney Disease. \emph{Statistical Analysis and Data Mining}. \bold{To appear}.
+Hagar, Y., Albers, D., Pivavarov, R., Chase, H., Dukic, V., Elhadad, N. (2014), Survival analysis with Electronic Health Record data: Experiments with Chronic Kidney Disease. \emph{Statistical Analysis and Data Mining}. \bold{7,} 385--403.
 
 Chen, Y., Hagar, Y., Dignam, J., Dukic, V. (2014), Pruned Multiresolution Hazard (PMRH) models for time-to-event data. \emph{In review.} Available upon request via email to vanja.dukic@colorado.edu.
 

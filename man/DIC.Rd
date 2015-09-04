@@ -47,9 +47,11 @@ fit.lung.prune = estimateMRH(formula = Surv(time, censorvar) ~
 	M = 3, maxStudyTime = 960, burnIn = 200, maxIter = 1000, 
 	thin = 1, prune = TRUE, outfolder = 'MRH_lung_prune')}
 	
-# Compare the DIC of the pruned and unpruned models:
+# Compare the DIC of the pruned and unpruned models.
+# The sample size must be entered for calculation of BIC.
+# This number can be found in the ``MCMCInfo.txt" file
+# in the output folder.
 \dontrun{
-DIC(fit.lung)
-DIC(fit.lung.prune)}
-
+DIC(fit.lung, n = 227)
+DIC(fit.lung.prune, n = 227)}
 }

@@ -183,6 +183,11 @@ cancer$censorvar = cancer$status - 1
 # thinning value, and maximum number
 # of iterations, but for illustrative purposes 
 # these values have been lowered.
+# Note that the routine may produce a warning 
+# message that the algorithm has not converged,
+# as typically more iterations are needed for convergence.
+# However, for the purposes of this example, the number
+# of iterations is sufficient.
 \dontrun{
 fit.lung = estimateMRH(formula = Surv(time, censorvar) ~ 
 	age + as.factor(sex) + ph.karno, data = cancer,
@@ -203,9 +208,11 @@ fit.lung = estimateMRH(formula = Surv(time, censorvar) ~
 fit.lung$summary
 }
 # NOTE: If estimateMRH is run as a background job, 
-# the fit can be calculated using the as.MRH() and
-# summary.MRH() functions.  See the help pages or 
-# vignette for more information.
+# or if the output folder has been saved for use
+# at a later instance, then  the fit can be calculated 
+# using the as.MRH() and summary.MRH() functions.  
+# See the those help pages or the vignette for 
+# more information.
 
 # Run the same model as above, but with pruning. 
 # Save the output in a folder titled 'MRH_lung_prune'
@@ -228,6 +235,11 @@ data(tongue)
 # thinning value, and maximum number
 # of iterations, but for illustrative purposes 
 # these values have been lowered.
+# Note that the routine may produce a warning 
+# message that the algorithm has not converged,
+# as typically more iterations are needed for convergence.
+# However, for the purposes of this example, the number
+# of iterations is sufficient.
 \dontrun{
 fit.tongue = estimateMRH(formula = Surv(time, delta) ~ 
 	nph(type), data = tongue, M = 4, 

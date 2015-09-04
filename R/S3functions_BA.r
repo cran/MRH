@@ -14,15 +14,16 @@ combine.graphs, alpha.level, conf.int, log.ratio){
 	
 	# Get the parameter estimates #
 	if(plot.type == 'r'){
-		if(log.ratio == TRUE){
-			dests.temp = summary.MRH(x, alpha.level = alpha.level, maxStudyTime = censortime)$betaNPH
-		} else {
+		if(log.ratio != TRUE){
 			start.betas = substr(colnames(x), 1, 4)
 			end.betas = substr(colnames(x), nchar(colnames(x))-3, nchar(colnames(x)))
 			beta.nphindex = 1:(2^M*(numhazards-1)) + which(start.betas == 'beta' & end.betas == 'bin1')[1] - 1
 			x[,beta.nphindex] = exp(x[,beta.nphindex])
-			dests.temp = summary.MRH(x, alpha.level = alpha.level, maxStudyTime = censortime)$betaNPH
 		}
+        dests.temp = summary.MRH(x, alpha.level = alpha.level, maxStudyTime = censortime)$beta
+        end.betas = substr(row.names(dests.temp), nchar(row.names(dests.temp))-3, nchar(row.names(dests.temp)))
+        beta.nph.index = 1:(2^M*(numhazards-1))+which(end.betas == 'bin1')[1]-1
+        dests.temp = dests.temp[beta.nph.index,]
 	} else if(!missing(censortime)){
 		dests.temp = t(CalcFunction(x, function.type = plot.type, alpha.level = alpha.level, maxStudyTime = censortime)[[1]])[,c(2,1,3)]
 	} else {	dests.temp = t(CalcFunction(x, function.type = plot.type, alpha.level = alpha.level)[[1]])[,c(2,1,3)]	}	

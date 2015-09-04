@@ -1,10 +1,18 @@
 useDynLib(MRH)
 import(coda, survival, KMsurv)
+importFrom("grDevices", "dev.off", "pdf")
+importFrom("graphics", "abline", "axis", "box", "legend", "mtext",
+              "par", "plot", "points")
+importFrom("stats", "density", "fisher.test", "median",
+              "model.extract", "model.frame", "model.matrix", "qnorm",
+              "quantile", "rgamma", "runif", "sd", "smooth.spline",
+              "terms", "var")
+importFrom("utils", "read.table", "write.table")
 S3method(summary, MRH)
 S3method(plot, MRH)
+S3method(MRH, default)
 export("AnalyzeMultiple",
 	"estimateMRH",
-	"MRH.default",
 	"MRH",
 	"is.MRH",
 	"as.MRH",

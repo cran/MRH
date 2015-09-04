@@ -10,7 +10,7 @@
 \description{
 	NOTE: This function converts the MRH MCMC chains file to an MRH object.  For help with the MRH package, please see \code{\link{MRH-package}} for more information.
 	
-	When the MRH model is run as a background routine, the MRH object is not available in the workspace.  The MRH() and as.MRH() functions convert the MCMC chains text file produced by the estimateMRH() routine in to an MRH object. This then allows the user to use the summary and plotting functions on the MRH object. 
+	When the MRH model is run as a background routine or if the user quits the R workspace after the routine finishes running, the MRH object is not available in the workspace.  The MRH() and as.MRH() functions convert the MCMC chains text file produced by the estimateMRH() routine in to an MRH object. This then allows the user to use the summary and plotting functions on the MRH object. 
 }
 \usage{
 MRH(x)

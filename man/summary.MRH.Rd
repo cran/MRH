@@ -62,6 +62,8 @@ fit.tongue = estimateMRH(formula = Surv(time, delta) ~
 summary(fit.lung)
 summary(fit.lung, alpha.level = .01)
 
+# Read in from the saved output file, converting to an MRH object,
+# then summarize.
 mcmc.lung = as.MRH(read.table('MRH_lung/MCMCchains.txt', header = TRUE))
 summary(mcmc.lung, maxStudyTime = 960)
 summary(mcmc.lung, maxStudyTime = 960, alpha.level = .01)

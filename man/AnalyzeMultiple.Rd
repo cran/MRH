@@ -54,6 +54,12 @@ If the Gelman-Rubin test is used, the MCMC chains must satisfy the assumptions n
 # across all MCMC chains, and so that initialized 
 # parameter values cover the parameter space.
 
+# Note that the routine may produce a warning 
+# message that the algorithm has not converged,
+# as typically more iterations are needed for convergence.
+# However, for the purposes of this example, the number
+# of iterations is sufficient.
+
 data(cancer)
 cancer$censorvar = cancer$status - 1
 \dontrun{

@@ -53,9 +53,9 @@ continue.chain, k.init, loopctr.start){
 	F = H = rep(NA, length = n)
 	if(fix.thin == TRUE){ best.thin.found = TRUE }
 	# Index for convergence graphs and testing
+
 	while((loopctr <= maxIter & convergence == FALSE & fix.max == FALSE) | 
 		  (loopctr <= maxIter & fix.max == TRUE)){
-
 		######## Draw H00 ########
 		# Calculate F for each hazard group, which is needed in the posterior of each H00
 		for(hazCtr in 1:numHazards){

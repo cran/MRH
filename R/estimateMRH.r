@@ -320,7 +320,7 @@ continue.chain = FALSE){
 		outputdata = NPHBAshell(Mval = M, Ti = Ti, Xfixed = Xmatrix, XNPH = X.nonproportional,
 								 prune.indc = prune.indicator, delta = delta, outfilename = outfolder, 
 								 burnIn = burnIn, maxIter = maxIter, thin = thin, RmpInit = Rmp.init,
-								 a.init = a.init, lambda.init = lambda.init, beta.init = beta.init, 
+								 a.init = a.init, lambda.init = lambda.init, beta.init = beta.init, k = k.fixed, gamma.mp = gamma.fixed, 
 								 censortime = censortime, GR = GR, convGraphs = convGraphs, fix.burnIn = fix.burnIn,
 								 fix.thin = fix.thin, fix.max = fix.max, writenum = writenum, 
 								 sysseconds = sysseconds, systemtime = systemtime, checknum = checknum,

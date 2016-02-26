@@ -150,9 +150,9 @@ combine.graphs, alpha.level, conf.int, log.ratio){
 				points(plot.timepts, dests[1:max.index+max.index*(hazCtr-1), 2], type = 'l', lty = 2, col = hazCtr)
 				points(plot.timepts, dests[1:max.index+max.index*(hazCtr-1), 3], type = 'l', lty = 2, col = hazCtr)
 			}
-			legend(x = "bottomright", paste('group', hazgroups), fill = 1:numhazards, cex = 1.2)
+			legend(x = "topright", paste('group', hazgroups), fill = 1:numhazards, cex = 1.2)
 		} else { 
-			legend(x = "bottomright", paste('group', hazgroups[-1]), fill = 2:numhazards-1, cex = 1.2)
+			legend(x = "topright", paste('group', hazgroups[-1]), fill = 2:numhazards-1, cex = 1.2)
 		}
 	}
 }

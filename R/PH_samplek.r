@@ -161,7 +161,8 @@ initialValues, continue.chain, k.init, loopctr.start){
 		if((loopctr %% 5000) == 0){	print(paste(loopctr, 'iterations completed...'))	}
 		# Increment loopctr
 		loopctr = loopctr+1
-	}	
+	}
+
 	outputdata = list(assessIndex = assessIndex, numberofEstParams = 2 + 1 + numParams + length(RmpNoPruneIndx) + 1,
                         numParams = numParams, failBin = failBin, inBin = inBin, GR = GR, loopctr = loopctr,
                         convergence = convergence, initialValues = initialValues, burnIn = burnIn, thin = thin)

@@ -58,7 +58,6 @@ continue.chain, k.init, gamma.init, loopctr.start){
 	# is equal to the betas, 1 H, 2^M-1 Rmps minus those that are not pruned, 2^M-1 gammas, 1 k 
 	assessIndex = c(1:(numParams+1), (1:(2^Mval-1))[RmpNoPruneIndx]+numParams+1, (1:(2^Mval-1))[RmpNoPruneIndx] + 2^Mval-1+numParams+1,
 					(2^Mval-1)*2+numParams+1)+2^Mval+1
-	
 	while((loopctr <= maxIter & convergence == FALSE & fix.max == FALSE) | 
 		  (loopctr <= maxIter & fix.max == TRUE)){
 		
@@ -182,6 +181,7 @@ continue.chain, k.init, gamma.init, loopctr.start){
 		# Increment loopctr
 		loopctr = loopctr+1
 	}
+
 	outputdata = list(assessIndex = assessIndex, numberofEstParams = 2 + 1 + length(RmpNoPruneIndx)*2 + numParams + 1,
                         numParams = numParams, failBin = failBin, inBin = inBin, GR = GR, loopctr = loopctr,
                         convergence = convergence, initialValues = initialValues, burnIn = burnIn, thin = thin)

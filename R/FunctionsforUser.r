@@ -273,23 +273,23 @@ DIC = function(mrhobject, n){
 						sapply(Rmp.index, function(x) var(mrhobject[,x])) == 0)
 	numparams = numparams - length(pruned.Rmps)
 
-	loglik = mrhobject[,ncol(mrhobject)]
-	loglik.summ = as.data.frame(matrix(summary(-2*loglik), ncol = 1))
-    row.names(loglik.summ) = names(summary(-2*loglik))
-    names(loglik.summ) = 'value'
+	neg2loglik = mrhobject[,ncol(mrhobject)]
+	neg2loglik.summ = as.data.frame(matrix(summary(neg2loglik), ncol = 1))
+    row.names(neg2loglik.summ) = names(summary(neg2loglik))
+    names(neg2loglik.summ) = 'value'
     
-	DIC = .5*var(-2*loglik) + mean(-2*loglik)
-	AIC = max(2*numparams - 2*loglik)
+	DIC = .5*var(neg2loglik) + mean(neg2loglik)
+	AIC = max(2*numparams + neg2loglik)
 	BIC = NA
 	if(!missing(n)){
-		BIC = max(-2*loglik + numparams*log(n))
+		BIC = max(neg2loglik + numparams*log(n))
 	} else {
 		warning("Need number of subjects in data set (n) to calculate BIC. This number can be found in the MCMCInfo.txt file in the output folder.")
 	}
 	ICtable = as.data.frame(matrix(c(DIC, AIC, BIC), ncol = 1))
 	row.names(ICtable) = c('DIC', 'AIC', 'BIC')
     names(ICtable) = 'value'
-	return(list(neg2loglik.summ = loglik.summ, ICtable = ICtable))
+	return(list(neg2loglik.summ = neg2loglik.summ, ICtable = ICtable))
 	
 }		
 

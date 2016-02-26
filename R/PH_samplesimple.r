@@ -43,7 +43,7 @@ continue.chain, loopctr.start){
 	
 	while((loopctr <= maxIter & convergence == FALSE & fix.max == FALSE) | 
 		  (loopctr <= maxIter & fix.max == TRUE)){
-		
+              
 		######## Draw H00 ########
 		# Calculate F, which is needed in the posterior of H00
 		F = calc_F(mat01 = mat01, Rmp = Rmp, M = Mval, inBinMat = inBin)

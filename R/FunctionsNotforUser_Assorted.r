@@ -583,7 +583,7 @@ loglikePH = function(finaldata, numEstParams, censortime, Mval, numParams, delta
 	totalone = rep(delta, nrow.data)*(rowSums(failBin[rep(1:n, nrow.data),]*(logds[rep(1:nrow.data, each = n),]))+Xbeta) -
 	rowSums(inBin[rep(1:n, nrow.data),]*(finaldata[,1:2^Mval+1][rep(1:nrow.data, each = n),]))*exp(Xbeta)
 	
-	logliks = rowSums(matrix(totalone, ncol = n, byrow = TRUE))
+	logliks = -2*rowSums(matrix(totalone, ncol = n, byrow = TRUE))
 	finaldata = as.data.frame(cbind(finaldata, logliks))
 	names(finaldata) = c(names(finaldata)[-ncol(finaldata)], 'neg2loglike')
 	write.table(finaldata, paste(outfilename, '/MCMCchains.txt', sep = ''), row.names = FALSE)
@@ -629,7 +629,7 @@ loglikeNPH = function(finaldata, numEstParams, censortime, Mval, numParams, delt
 	}
 	totalone = rep(delta, nrow.data)*(rowSums(hazBin[rep(1:n, nrow.data),]*(logds[rep(1:nrow.data, each = n),]))+Xbeta) -
 	rowSums(cumulBin[rep(1:n, nrow.data),]*(finaldata[,1:(2^Mval*numHazards)+1][rep(1:nrow.data, each = n),]))*exp(Xbeta)
-	logliks = rowSums(matrix(totalone, ncol = n, byrow = TRUE))
+	logliks = -2*rowSums(matrix(totalone, ncol = n, byrow = TRUE))
 	finaldata = as.data.frame(cbind(finaldata, logliks))
 	names(finaldata) = c(names(finaldata)[-ncol(finaldata)], 'neg2loglike')
 	write.table(finaldata, paste(outfilename, '/MCMCchains.txt', sep = ''), row.names = FALSE)

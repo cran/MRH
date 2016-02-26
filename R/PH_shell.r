@@ -123,7 +123,7 @@ gamma.init, loopctr.start){
 	if(!is.null(prune.indc)){  RmpNoPruneIndx = RmpNoPruneIndx[-which(prune.indc == 1)]	}
 	# If user is going to use the Gelman-Rubin test statistic, then jiggle the
 	# initial values to cover the range for each parameter.
-	if(GR == TRUE){
+	if(GR == TRUE & continue.chain == FALSE){
 		Rmp[RmpNoPruneIndx] = runif(length(RmpNoPruneIndx), 0, 1)
 		a = round(runif(1, 0, 10))
 		lambda = -log(mean(delta))/a

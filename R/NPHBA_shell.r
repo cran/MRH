@@ -116,8 +116,7 @@ gamma.init, loopctr.start){
 	#########################################################
 	# Initialize parameters
 	#########################################################
-	Rmp = gamma.mp = matrix(0.5, nrow = 2^Mval-1, ncol = numHazards)
-    k = rep(0.5, numHazards)
+	Rmp = matrix(0.5, nrow = 2^Mval-1, ncol = numHazards)
 	a = a.init
 	if(length(a.init) < numHazards){	a = rep(a.init, numHazards)	}
 	if(!is.null(lambda.init)){	
@@ -145,13 +144,15 @@ gamma.init, loopctr.start){
 	
 	# If user is going to use the Gelman-Rubin test statistic, then jiggle the
 	# initial values to cover the range for each parameter.
-	if(GR == TRUE){
+	if(GR == TRUE & continue.chain == FALSE){
 		for(rmpctr in 1:numHazards){
 			Rmp[RmpNoPruneIndx[[rmpctr]],rmpctr] = runif(length(RmpNoPruneIndx[[rmpctr]]), 0, 1)
 		}
 		a = runif(numHazards, 0, 10)
 		lambda = -log(sapply(1:numHazards, function(x) mean(delta[indices[[x]]]))[])/a
-		for(i in 1:length(betas)){	betas[i] = runif(1, betaLB[i], betaUB[i])	}
+        if(numPHParams > 0){
+            for(i in 1:length(betas)){	betas[i] = runif(1, betaLB[i], betaUB[i])	}
+        }
 	}
 			
 	#########################################################

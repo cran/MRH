@@ -185,6 +185,7 @@ indices, continue.chain, loopctr.start){
 		# Increment loopctr
 		loopctr = loopctr+1
 	}
+
     # Number of estimated parameters: a, lambda, H for each hazard, number of unpruned Rmps, number of betas
 	outputdata = list(assessIndex = analyzeIndex,
                         numberofEstParams = 3*numHazards + length(RmpAnalyzeIndex) + numPHParams,
